@@ -9,14 +9,10 @@ SAMPLE_SIZE = int(os.getenv("SAMPLE_SIZE", 5000))
 
 
 # ==========================================
-# FUNCIÓN PARA CARGAR UNA COLECCIÓN
+# CARGAR COLECCIÓN
 # ==========================================
 
 def cargar_coleccion(nombre, limite=SAMPLE_SIZE):
-    """
-    Carga una colección desde MongoDB y realiza
-    la limpieza mínima inicial.
-    """
 
     print(f"Cargando {nombre}...")
 
@@ -27,10 +23,6 @@ def cargar_coleccion(nombre, limite=SAMPLE_SIZE):
             .limit(limite)
         )
     )
-
-    # --------------------------
-    # Limpieza mínima
-    # --------------------------
 
     if "_id" in df.columns:
         df["_id"] = df["_id"].astype(str)
@@ -44,195 +36,111 @@ def cargar_coleccion(nombre, limite=SAMPLE_SIZE):
     return df
 
 
+
 # ==========================================
-# LIMPIEZA DE LLAVES DE RELACIÓN
+# LIMPIEZA DE LLAVES
 # ==========================================
 
 def limpiar_tablas(tablas):
 
-    # USERS
-    if "_id" in tablas["users"].columns:
-        tablas["users"]["_id"] = tablas["users"]["_id"].astype(str)
+    relaciones = {
 
-    # CVS
-    if "_id" in tablas["cvs"].columns:
-        tablas["cvs"]["_id"] = tablas["cvs"]["_id"].astype(str)
+        "users": [
+            "_id"
+        ],
 
-    if "user" in tablas["cvs"].columns:
-        tablas["cvs"]["user"] = (
-            tablas["cvs"]["user"]
-            .fillna("")
-            .astype(str)
-        )
+        "cvs": [
+            "_id",
+            "user"
+        ],
 
-    # EDUCATIONS
-    if "_id" in tablas["educations"].columns:
-        tablas["educations"]["_id"] = tablas["educations"]["_id"].astype(str)
+        "educations": [
+            "_id",
+            "cv"
+        ],
 
-    if "cv" in tablas["educations"].columns:
-        tablas["educations"]["cv"] = (
-            tablas["educations"]["cv"]
-            .fillna("")
-            .astype(str)
-        )
+        "workexperiences": [
+            "_id",
+            "cv"
+        ],
 
-    # WORK EXPERIENCES
-    if "_id" in tablas["workexperiences"].columns:
-        tablas["workexperiences"]["_id"] = tablas["workexperiences"]["_id"].astype(str)
+        "companies": [
+            "_id"
+        ],
 
-    if "cv" in tablas["workexperiences"].columns:
-        tablas["workexperiences"]["cv"] = (
-            tablas["workexperiences"]["cv"]
-            .fillna("")
-            .astype(str)
-        )
+        "jobs": [
+            "_id",
+            "companyId"
+        ],
 
-    # COMPANIES
-    if "_id" in tablas["companies"].columns:
-        tablas["companies"]["_id"] = tablas["companies"]["_id"].astype(str)
+        "applications": [
+            "_id",
+            "job",
+            "user",
+            "cv",
+            "applicant"
+        ],
 
-    # JOBS
-    if "_id" in tablas["jobs"].columns:
-        tablas["jobs"]["_id"] = tablas["jobs"]["_id"].astype(str)
+        "courseenrollments": [
+            "_id",
+            "user",
+            "course"
+        ],
 
-    if "companyId" in tablas["jobs"].columns:
-        tablas["jobs"]["companyId"] = (
-            tablas["jobs"]["companyId"]
-            .fillna("")
-            .astype(str)
-        )
+        "courses": [
+            "_id",
+            "createdBy"
+        ],
 
-    # APPLICATIONS
-    if "_id" in tablas["applications"].columns:
-        tablas["applications"]["_id"] = tablas["applications"]["_id"].astype(str)
+        "aiconversations": [
+            "_id",
+            "user"
+        ],
 
-    for columna in ["job", "applicant", "user", "cv"]:
+        "aimessages": [
+            "_id",
+            "user",
+            "conversation"
+        ],
 
-        if columna in tablas["applications"].columns:
+        "events": [
+            "_id",
+            "createdBy"
+        ],
 
-            tablas["applications"][columna] = (
-                tablas["applications"][columna]
-                .fillna("")
-                .astype(str)
-            )
+        "eventguests": [
+            "_id",
+            "event",
+            "userEmail"
+        ]
+    }
+
+
+    for tabla, columnas in relaciones.items():
+
+        for columna in columnas:
+
+            if columna in tablas[tabla].columns:
+
+                tablas[tabla][columna] = (
+                    tablas[tabla][columna]
+                    .fillna("")
+                    .astype(str)
+                )
+
 
     return tablas
-    
-    # COURSE ENROLLMENTS
-  
-
-    if "_id" in tablas["courseenrollments"].columns:
-        tablas["courseenrollments"]["_id"] = (
-            tablas["courseenrollments"]["_id"]
-            .astype(str)
-        )
-
-    for columna in ["course", "user"]:
-        if columna in tablas["courseenrollments"].columns:
-            tablas["courseenrollments"][columna] = (
-                tablas["courseenrollments"][columna]
-                .fillna("")
-                .astype(str)
-            )
-
-  
-    # COURSES
-    
-
-    if "_id" in tablas["courses"].columns:
-        tablas["courses"]["_id"] = (
-            tablas["courses"]["_id"]
-            .astype(str)
-        )
-
-    if "createdBy" in tablas["courses"].columns:
-        tablas["courses"]["createdBy"] = (
-            tablas["courses"]["createdBy"]
-            .fillna("")
-            .astype(str)
-        )
-
-    
-    # AI CONVERSATIONS
-   
-
-    if "_id" in tablas["aiconversations"].columns:
-        tablas["aiconversations"]["_id"] = (
-            tablas["aiconversations"]["_id"]
-            .astype(str)
-        )
-
-    if "user" in tablas["aiconversations"].columns:
-        tablas["aiconversations"]["user"] = (
-            tablas["aiconversations"]["user"]
-            .fillna("")
-            .astype(str)
-        )
-
-   
-    # AI MESSAGES
-  
-
-    if "_id" in tablas["aimessages"].columns:
-        tablas["aimessages"]["_id"] = (
-            tablas["aimessages"]["_id"]
-            .astype(str)
-        )
-
-    for columna in ["conversation", "user"]:
-        if columna in tablas["aimessages"].columns:
-            tablas["aimessages"][columna] = (
-                tablas["aimessages"][columna]
-                .fillna("")
-                .astype(str)
-            )
-
-   
-    # EVENTS
-
-
-    if "_id" in tablas["events"].columns:
-        tablas["events"]["_id"] = (
-            tablas["events"]["_id"]
-            .astype(str)
-        )
-
-    if "createdBy" in tablas["events"].columns:
-        tablas["events"]["createdBy"] = (
-            tablas["events"]["createdBy"]
-            .fillna("")
-            .astype(str)
-        )
-
-    if "communityId" in tablas["events"].columns:
-        tablas["events"]["communityId"] = (
-            tablas["events"]["communityId"]
-            .fillna("")
-            .astype(str)
-        )
-
-   
-    # EVENT GUESTS
-    
-
-    if "_id" in tablas["eventguests"].columns:
-        tablas["eventguests"]["_id"] = (
-            tablas["eventguests"]["_id"]
-            .astype(str)
-        )
-
-    if "event" in tablas["eventguests"].columns:
-        tablas["eventguests"]["event"] = (
-            tablas["eventguests"]["event"]
-            .fillna("")
-            .astype(str)
-        )
 
 # ==========================================
 # CONSTRUCTOR
 # ==========================================
 
 def construir_dataset():
+
+
+    # ==========================
+    # CARGAR TABLAS
+    # ==========================
 
     tablas = {
 
@@ -261,26 +169,400 @@ def construir_dataset():
         "events": cargar_coleccion("events"),
 
         "eventguests": cargar_coleccion("eventguests")
-
     }
+
+
+    # ==========================
+    # LIMPIEZA
+    # ==========================
 
     tablas = limpiar_tablas(tablas)
 
-    print("\n✅ Todas las colecciones fueron cargadas y limpiadas correctamente.")
 
-    return tablas
+
+    # ==========================================
+    # MERGES GENERALES
+    # ==========================================
+
+
+    # USERS + CVS
+
+    df_users_cv = pd.merge(
+        tablas["users"],
+        tablas["cvs"],
+        left_on="_id",
+        right_on="user",
+        how="left",
+        suffixes=("_user", "_cv")
+    )
+
+
+
+    # CVS + EDUCATIONS
+
+    df_cvs_education = pd.merge(
+        tablas["cvs"],
+        tablas["educations"],
+        left_on="_id",
+        right_on="cv",
+        how="left",
+        suffixes=("_cv", "_education")
+    )
+
+
+
+    # CVS + WORK EXPERIENCES
+
+    df_cvs_work = pd.merge(
+        tablas["cvs"],
+        tablas["workexperiences"],
+        left_on="_id",
+        right_on="cv",
+        how="left",
+        suffixes=("_cv", "_work")
+    )
+
+
+
+    # APPLICATIONS + JOBS
+
+    df_applications_jobs = pd.merge(
+        tablas["applications"],
+        tablas["jobs"],
+        left_on="job",
+        right_on="_id",
+        how="left",
+        suffixes=("_application", "_job")
+    )
+
+
+
+    # APPLICATIONS + USERS
+
+    df_applications_users = pd.merge(
+        tablas["applications"],
+        tablas["users"],
+        left_on="user",
+        right_on="_id",
+        how="left",
+        suffixes=("_application", "_user")
+    )
+
+
+
+    # ==========================================
+    # DATASET POSTULANTES
+    # ==========================================
+
+
+    df_postulantes_final = tablas["users"].copy()
+
+
+
+    # POSTULANTES + CV
+
+    df_postulantes_cv = pd.merge(
+        df_postulantes_final,
+        tablas["cvs"],
+        left_on="_id",
+        right_on="user",
+        how="left",
+        suffixes=("_postulante", "_cv")
+    )
+
+
+
+    # POSTULANTES + EDUCACION
+
+    df_postulantes_education = pd.merge(
+        df_postulantes_cv,
+        tablas["educations"],
+        left_on="_id_cv",
+        right_on="cv",
+        how="left",
+        suffixes=("", "_education")
+    )
+
+
+
+    # POSTULANTES + EXPERIENCIA
+
+    df_postulantes_work = pd.merge(
+        df_postulantes_cv,
+        tablas["workexperiences"],
+        left_on="_id_cv",
+        right_on="cv",
+        how="left",
+        suffixes=("", "_work")
+    )
+
+
+
+    # ==========================================
+    # CURSOS
+    # ==========================================
+
+
+    cursos_usuario = (
+        tablas["courseenrollments"]
+        .groupby("user")
+        .agg(
+            cantidad_cursos=("course", "count")
+        )
+        .reset_index()
+    )
+
+
+    df_postulantes_cursos = pd.merge(
+        df_postulantes_work,
+        cursos_usuario,
+        left_on="_id",
+        right_on="user",
+        how="left"
+    )
+
+
+    df_postulantes_cursos["cantidad_cursos"] = (
+        df_postulantes_cursos["cantidad_cursos"]
+        .fillna(0)
+        .astype(int)
+    )
+
+
+
+    # ==========================================
+    # USO DE IA
+    # ==========================================
+
+
+    usuarios_ia = pd.concat(
+        [
+            tablas["aiconversations"][["user"]],
+            tablas["aimessages"][["user"]]
+        ],
+        ignore_index=True
+    )
+
+
+    usuarios_ia = (
+        usuarios_ia
+        .drop_duplicates()
+        .assign(uso_ia=True)
+    )
+
+
+    df_postulantes_ia = pd.merge(
+        df_postulantes_cursos,
+        usuarios_ia,
+        left_on="_id",
+        right_on="user",
+        how="left"
+    )
+
+
+    df_postulantes_ia["uso_ia"] = (
+        df_postulantes_ia["uso_ia"]
+        .fillna(False)
+    )
+
+
+
+    # ==========================================
+    # EVENTOS
+    # ==========================================
+
+
+    eventos_usuario = tablas["eventguests"][
+        [
+            "event",
+            "userEmail",
+            "status",
+            "registrationDate"
+        ]
+    ].copy()
+
+
+
+    df_postulantes_eventos = pd.merge(
+        df_postulantes_ia,
+        eventos_usuario,
+        left_on="email_postulante",
+        right_on="userEmail",
+        how="left"
+    )
+
+    df_postulantes_dashboard = (
+        df_postulantes_eventos
+        .groupby("_id_postulante", as_index=False)
+        .agg(
+             email=("email_postulante","first"),
+             nombre=("firstName_postulante","first"),
+             apellido=("lastName_postulante","first"),
+             ubicacion=("location_postulante","first"),
+              profesion=("profession","first"),
+              tiene_cv=("_id_cv", lambda x: x.notna().any()),
+              cantidad_cursos=("cantidad_cursos","max"),
+              uso_ia=("uso_ia","max"),
+              cantidad_eventos=("event","count")
+              )
+        )
+
+    df_postulantes_dashboard["participo_evento"] = (
+        df_postulantes_dashboard["cantidad_eventos"] > 0
+        )
+
+    
+
+    print(
+         "Dataset dashboard postulantes:",
+         df_postulantes_dashboard.shape
+
+         )
+
+
+
+
+        # ==========================================
+    # VALIDACIONES
+    # ==========================================
+
+    print("\n========== RESULTADOS MERGES ==========")
+
+    print("Usuarios + CV:", df_users_cv.shape)
+
+    print("CV + Educación:", df_cvs_education.shape)
+
+    print("CV + Experiencia:", df_cvs_work.shape)
+
+    print("Applications + Jobs:", df_applications_jobs.shape)
+
+    print("Applications + Users:", df_applications_users.shape)
+
+    print("Postulantes + CV:", df_postulantes_cv.shape)
+
+    print("Postulantes + Educación:", df_postulantes_education.shape)
+
+    print("Postulantes + Experiencia:", df_postulantes_work.shape)
+
+    print("Postulantes + Cursos:", df_postulantes_cursos.shape)
+
+    print("Postulantes + IA:", df_postulantes_ia.shape)
+
+    print("Postulantes + Eventos:", df_postulantes_eventos.shape)
+
+
+
+    print("\n✅ Constructor terminado correctamente")
+
+
+
+    # ==========================================
+    # RETORNO
+    # ==========================================
+
+    return {
+
+
+        # TABLAS ORIGINALES
+
+        "users": tablas["users"],
+
+        "cvs": tablas["cvs"],
+
+        "educations": tablas["educations"],
+
+        "workexperiences": tablas["workexperiences"],
+
+        "companies": tablas["companies"],
+
+        "jobs": tablas["jobs"],
+
+        "applications": tablas["applications"],
+
+        "courseenrollments": tablas["courseenrollments"],
+
+        "courses": tablas["courses"],
+
+        "aiconversations": tablas["aiconversations"],
+
+        "aimessages": tablas["aimessages"],
+
+        "events": tablas["events"],
+
+        "eventguests": tablas["eventguests"],
+
+        "postulantes_dashboard": df_postulantes_dashboard,
+
+
+
+        # MERGES GENERALES
+
+        "users_cv": df_users_cv,
+
+        "cvs_education": df_cvs_education,
+
+        "cvs_work": df_cvs_work,
+
+        "applications_jobs": df_applications_jobs,
+
+        "applications_users": df_applications_users,
+
+
+
+        # DATASET DASHBOARD POSTULANTES
+
+        "postulantes_cv": df_postulantes_cv,
+
+        "postulantes_education": df_postulantes_education,
+
+        "postulantes_work": df_postulantes_work,
+
+        "postulantes_cursos": df_postulantes_cursos,
+
+        "postulantes_ia": df_postulantes_ia,
+
+        "postulantes_eventos": df_postulantes_eventos
+
+    }
+
 
 
 # ==========================================
-# PRUEBA DEL CONSTRUCTOR
+# EJECUCIÓN DE PRUEBA
 # ==========================================
 
 if __name__ == "__main__":
 
+
     tablas = construir_dataset()
 
-    print("\n========== RESUMEN ==========\n")
+
+    print("\n========== RESUMEN FINAL ==========\n")
+
 
     for nombre, df in tablas.items():
 
         print(f"{nombre}: {df.shape}")
+
+
+
+
+# ==========================================
+    # VALIDACIÓN DATASET DASHBOARD
+    # ==========================================
+
+    df = tablas["postulantes_dashboard"]
+
+    print("\n========== VALIDACIÓN POSTULANTES DASHBOARD ==========")
+
+    print("\nDimensiones:")
+    print(df.shape)
+
+    print("\nUsuarios únicos:")
+    print(df["_id_postulante"].nunique())
+
+    print("\nDuplicados:")
+    print(df["_id_postulante"].duplicated().sum())
+
+    print("\nColumnas:")
+    print(df.columns.tolist())
