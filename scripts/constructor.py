@@ -1,3 +1,25 @@
+from educacion import (
+    crear_area_carrera,
+    resumen_carreras,
+    resumen_nivel_educativo
+)
+
+from indicadores import (
+    calcular_kpis_postulantes
+)
+
+from eventos import (
+    clasificar_evento,
+    resumen_eventos
+)
+
+from experiencia import (
+    resumen_tipo_experiencia,
+    calcular_experiencia,
+    rango_experiencia,
+    rango_practica
+)
+
 import os
 import pandas as pd
 from dotenv import load_dotenv
