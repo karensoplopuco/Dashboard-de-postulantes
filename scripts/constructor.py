@@ -1,12 +1,19 @@
 import os
 import pandas as pd
 from dotenv import load_dotenv
+from pathlib import Path
 from conexion import db
 
 load_dotenv()
 
 SAMPLE_SIZE = int(os.getenv("SAMPLE_SIZE", 5000))
 
+CACHE_DIR = Path("data/cache")
+
+CACHE_DIR.mkdir(
+    parents=True,
+    exist_ok=True
+)
 
 # ==========================================
 # CARGAR COLECCIÓN
@@ -14,7 +21,35 @@ SAMPLE_SIZE = int(os.getenv("SAMPLE_SIZE", 5000))
 
 def cargar_coleccion(nombre, limite=SAMPLE_SIZE):
 
-    print(f"Cargando {nombre}...")
+    archivo_cache = CACHE_DIR / f"{nombre}.csv"
+
+
+    # ==========================
+    # LEER CACHE
+    # ==========================
+
+    if archivo_cache.exists():
+
+        print(f"📂 Leyendo cache {nombre}...")
+
+        df = pd.read_csv(
+            archivo_cache
+        )
+
+        print(
+            f"{nombre}: {df.shape}"
+        )
+
+        return df
+
+
+
+    # ==========================
+    # CARGAR MONGODB
+    # ==========================
+
+    print(f"🌐 Cargando MongoDB {nombre}...")
+
 
     df = pd.DataFrame(
         list(
@@ -24,14 +59,49 @@ def cargar_coleccion(nombre, limite=SAMPLE_SIZE):
         )
     )
 
+
     if "_id" in df.columns:
-        df["_id"] = df["_id"].astype(str)
 
-    df.replace("", pd.NA, inplace=True)
+        df["_id"] = (
+            df["_id"]
+            .astype(str)
+        )
 
-    df.reset_index(drop=True, inplace=True)
 
-    print(f"{nombre}: {df.shape}")
+    df.replace(
+        "",
+        pd.NA,
+        inplace=True
+    )
+
+
+    df.reset_index(
+        drop=True,
+        inplace=True
+    )
+
+
+    # ==========================
+    # GUARDAR CACHE
+    # ==========================
+
+    df.to_csv(
+        archivo_cache,
+        index=False,
+        encoding="utf-8"
+    )
+
+
+    print(
+        f"💾 Cache creado: {archivo_cache}"
+    )
+
+
+    print(
+        f"{nombre}: {df.shape}"
+    )
+
+
 
     return df
 
@@ -411,7 +481,29 @@ def construir_dataset():
         df_postulantes_dashboard["cantidad_eventos"] > 0
         )
 
-    
+    # GUARDAR DATASET DASHBOARD EN CACHE
+
+    df_postulantes_dashboard.to_csv(
+         CACHE_DIR / "postulantes_dashboard.csv",
+         index=False,
+         encoding="utf-8"
+
+    )
+
+    print(
+        "💾 Cache dashboard creado"
+
+    )
+
+
+
+
+
+
+
+
+
+
 
     print(
          "Dataset dashboard postulantes:",
