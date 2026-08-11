@@ -2167,7 +2167,6 @@ print(
 
 eventos_detalle = pd.DataFrame()
 
-
 if not eventguests.empty:
 
     eventos = eventguests.copy()
@@ -2179,6 +2178,10 @@ if not eventguests.empty:
     print(
         eventos.columns.tolist()
     )
+
+    # --------------------------------------------------------
+    # COLUMNAS DE EVENTGUESTS
+    # --------------------------------------------------------
 
     columna_email_evento = buscar_columna(
         eventos,
@@ -2234,14 +2237,12 @@ if not eventguests.empty:
     )
 
     print(
-        f"Columna evento: "
+        f"Columna ID evento: "
         f"{columna_evento}"
     )
 
     # --------------------------------------------------------
-    # IMPORTANTE:
-    # Guardamos el _id ORIGINAL del eventguest
-    # antes de hacer merges.
+    # GUARDAR ID ORIGINAL DEL EVENTGUEST
     # --------------------------------------------------------
 
     if "_id" in eventos.columns:
@@ -2260,13 +2261,145 @@ if not eventguests.empty:
             )
         )
 
-    eventos[
-        "_id_usuario_evento"
-    ] = np.nan
+    # --------------------------------------------------------
+    # NORMALIZAR ID DEL EVENTO
+    # --------------------------------------------------------
+
+    if columna_evento:
+
+        eventos["_id_evento"] = (
+            eventos[columna_evento]
+            .apply(limpiar_id)
+        )
+
+    else:
+
+        eventos["_id_evento"] = np.nan
+
+    # ========================================================
+    # OBTENER TÍTULO DESDE LA COLECCIÓN EVENTS
+    # ========================================================
+
+    if (
+        not events.empty
+        and "_id" in events.columns
+        and "title" in events.columns
+        and columna_evento
+    ):
+
+        eventos_catalogo = events.copy()
+
+        eventos_catalogo["_id"] = (
+            eventos_catalogo["_id"]
+            .apply(limpiar_id)
+        )
+
+        eventos_catalogo = (
+            eventos_catalogo[
+                [
+                    "_id",
+                    "title",
+                ]
+            ]
+            .dropna(
+                subset=[
+                    "_id",
+                ]
+            )
+            .drop_duplicates(
+                subset=[
+                    "_id",
+                ]
+            )
+            .rename(
+                columns={
+                    "_id":
+                        "_id_evento_catalogo",
+                    "title":
+                        "titulo_evento",
+                }
+            )
+        )
+
+        eventos = eventos.merge(
+            eventos_catalogo,
+            left_on="_id_evento",
+            right_on="_id_evento_catalogo",
+            how="left",
+        )
+
+        eventos = eventos.drop(
+            columns=[
+                "_id_evento_catalogo",
+            ],
+            errors="ignore",
+        )
+
+        print(
+            "✅ Títulos de eventos vinculados."
+        )
+
+    else:
+
+        eventos["titulo_evento"] = np.nan
+
+        print(
+            "⚠️ No se pudo obtener el título "
+            "desde la colección events."
+        )
+
+    # ========================================================
+    # CLASIFICAR TIPO DE EVENTO
+    # ========================================================
+
+    def clasificar_evento(titulo):
+
+        if pd.isna(titulo):
+
+            return "Sin clasificar"
+
+        titulo = normalizar_texto(
+            titulo
+        )
+
+        if not titulo:
+
+            return "Sin clasificar"
+
+        if "taller" in titulo:
+
+            return "Taller"
+
+        elif "despega" in titulo:
+
+            return "Feria laboral"
+
+        elif "hub" in titulo:
+
+            return "Networking"
+
+        elif "webinar" in titulo:
+
+            return "Webinar"
+
+        else:
+
+            return "Sin clasificar"
+
+    eventos["tipo_evento"] = (
+        eventos[
+            "titulo_evento"
+        ]
+        .apply(
+            clasificar_evento
+        )
+    )
 
     # --------------------------------------------------------
     # CRUCE POR EMAIL
     # --------------------------------------------------------
+
+    eventos["_id_usuario_evento"] = np.nan
 
     if columna_email_evento:
 
@@ -2404,9 +2537,9 @@ if not eventguests.empty:
             errors="ignore",
         )
 
-    # --------------------------------------------------------
+    # ========================================================
     # GUARDAR DETALLE
-    # --------------------------------------------------------
+    # ========================================================
 
     eventos_detalle = eventos.copy()
 
@@ -2416,7 +2549,9 @@ if not eventguests.empty:
         eventos_detalle[
             "_id_usuario_evento"
         ]
-        .apply(limpiar_id)
+        .apply(
+            limpiar_id
+        )
     )
 
     eventos_detalle = (
@@ -2427,6 +2562,10 @@ if not eventguests.empty:
             ]
         )
     )
+
+    # ========================================================
+    # PARTICIPACIÓN POR USUARIO
+    # ========================================================
 
     if not eventos_detalle.empty:
 
@@ -2462,6 +2601,10 @@ else:
     ] = 0
 
 
+# ============================================================
+# ASEGURAR CANTIDAD DE EVENTOS
+# ============================================================
+
 if (
     "cantidad_eventos"
     not in df_users_cv.columns
@@ -2493,6 +2636,66 @@ df_users_cv[
         "cantidad_eventos"
     ] > 0
 )
+
+
+# ============================================================
+# VALIDACIÓN EVENTOS
+# ============================================================
+
+print()
+print(
+    "========== VALIDACIÓN EVENTOS =========="
+)
+
+if not eventos_detalle.empty:
+
+    print(
+        "Participantes vinculados:",
+        eventos_detalle[
+            "_id_postulante"
+        ].nunique()
+    )
+
+    print(
+        "Total participaciones:",
+        len(eventos_detalle)
+    )
+
+    print()
+    print(
+        "Títulos de eventos:"
+    )
+
+    print(
+        eventos_detalle[
+            "titulo_evento"
+        ]
+        .value_counts(
+            dropna=False
+        )
+        .head(15)
+    )
+
+    print()
+    print(
+        "Tipos de eventos:"
+    )
+
+    print(
+        eventos_detalle[
+            "tipo_evento"
+        ]
+        .value_counts(
+            dropna=False
+        )
+    )
+
+else:
+
+    print(
+        "⚠️ No se encontraron "
+        "participaciones vinculadas."
+    )
 
 
 # ============================================================

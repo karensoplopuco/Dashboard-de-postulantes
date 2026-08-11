@@ -119,6 +119,23 @@ def cargar_dashboard():
 
 df_dashboard = cargar_dashboard()
 
+# ============================================================
+# CARGAR EVENTOS
+# ============================================================
+
+RUTA_EVENTOS = ROOT / "data" / "cache" / "eventos_dashboard.csv"
+
+
+@st.cache_data
+def cargar_eventos():
+
+    if not RUTA_EVENTOS.exists():
+        return pd.DataFrame()
+
+    return pd.read_csv(
+        RUTA_EVENTOS,
+        low_memory=False
+    )
 
 if df_dashboard.empty:
     st.warning("El archivo está vacío.")
@@ -1063,6 +1080,120 @@ with c2:
             use_container_width=True
         )
 
+# ============================================================
+# EXPERIENCIA
+# ============================================================
+
+st.markdown(
+    """
+    <div class="section-title">
+        Experiencia
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+c3, c4 = st.columns(2)
+
+
+# ============================================================
+# EXPERIENCIA LABORAL
+# ============================================================
+
+with c3:
+
+    st.markdown(
+    "<p style='font-size:16px; font-weight:600; margin-bottom:8px;'>Experiencia laboral</p>",
+    unsafe_allow_html=True
+    )
+
+
+    if "Rango_experiencia" in df.columns:
+
+        orden = [
+            "Sin experiencia registrada",
+            "Menos de 1 año",
+            "1 a 3 años",
+            "3 a 5 años",
+            "Más de 5 años"
+        ]
+
+        experiencia_df = (
+            df["Rango_experiencia"]
+            .value_counts()
+            .reindex(
+                orden,
+                fill_value=0
+            )
+            .reset_index()
+        )
+
+        experiencia_df.columns = [
+            "Rango",
+            "Postulantes"
+        ]
+
+        fig = crear_barra(
+            experiencia_df,
+            "Rango",
+            "Postulantes",
+            COLORS["periwinkle"]
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+
+# ============================================================
+# PRÁCTICAS
+# ============================================================
+
+with c4:
+
+    st.markdown(
+    "<p style='font-size:16px; font-weight:600; margin-bottom:8px;'>Experiencia en prácticas</p>",
+    unsafe_allow_html=True
+    )
+
+
+    if "Rango_practica" in df.columns:
+
+        orden_practicas = [
+            "Sin prácticas registradas",
+            "Menos de 1 año",
+            "1 a 2 años",
+            "Más de 2 años"
+        ]
+
+        practicas_df = (
+            df["Rango_practica"]
+            .value_counts()
+            .reindex(
+                orden_practicas,
+                fill_value=0
+            )
+            .reset_index()
+        )
+
+        practicas_df.columns = [
+            "Rango",
+            "Postulantes"
+        ]
+
+        fig = crear_barra(
+            practicas_df,
+            "Rango",
+            "Postulantes",
+            COLORS["menta"]
+        )
+
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
 
 # ============================================================
 # USO DE LA PLATAFORMA
@@ -1115,8 +1246,99 @@ with u2:
             "Postulantes",
             [COLORS["azul_eventos"], COLORS["gris"]]
         ),
-        use_container_width=True
+        use_container_width=True,
+        key="donut_participacion_eventos"
     )
+
+
+
+
+
+# ============================================================
+# PARTICIPACIÓN SEGÚN TIPO DE EVENTO
+# ============================================================
+
+st.markdown(
+    '<div class="section-title">Participación según tipo de evento</div>',
+    unsafe_allow_html=True
+)
+
+df_eventos = cargar_eventos()
+
+if not df_eventos.empty and "tipo_evento" in df_eventos.columns:
+
+    # --------------------------------------------------------
+    # FILTRAR EVENTOS SEGÚN LOS POSTULANTES FILTRADOS
+    # --------------------------------------------------------
+
+    if "_id_postulante" in df.columns and "_id_postulante" in df_eventos.columns:
+
+        ids_filtrados = (
+            df["_id_postulante"]
+            .dropna()
+            .astype(str)
+            .unique()
+        )
+
+        eventos_filtrados = df_eventos[
+            df_eventos["_id_postulante"]
+            .astype(str)
+            .isin(ids_filtrados)
+        ].copy()
+
+    else:
+
+        eventos_filtrados = df_eventos.copy()
+
+    # --------------------------------------------------------
+    # CONTAR TIPOS DE EVENTO
+    # --------------------------------------------------------
+
+    eventos_tipo = (
+        limpiar_categoria(
+            eventos_filtrados["tipo_evento"]
+        )
+        .dropna()
+        .value_counts()
+        .reset_index()
+    )
+
+    eventos_tipo.columns = [
+        "Tipo de evento",
+        "Participaciones"
+    ]
+
+    # --------------------------------------------------------
+    # GRÁFICO
+    # --------------------------------------------------------
+
+    if not eventos_tipo.empty:
+
+        fig_eventos = crear_barra(
+            eventos_tipo,
+            "Tipo de evento",
+            "Participaciones",
+            COLORS["azul_eventos"]
+        )
+
+        st.plotly_chart(
+            fig_eventos,
+            use_container_width=True,
+            key="grafico_tipo_evento"
+        )
+
+    else:
+
+        st.info(
+            "No hay participación en eventos para los filtros seleccionados."
+        )
+
+else:
+
+    st.info(
+        "No hay información disponible sobre los tipos de eventos."
+    )
+
 
 
 # ============================================================
