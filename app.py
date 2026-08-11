@@ -9,11 +9,17 @@ from pathlib import Path
 # ============================================================
 
 st.set_page_config(
-    page_title="Dashboard de Postulantes 📊",
+    page_title="Dashboard de Postulantes",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
+
+# Espacio superior
+st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
+
+# Título
+st.title("Dashboard de Postulantes")
 
 
 # ============================================================
@@ -143,24 +149,523 @@ if "createdAt_user" in df_dashboard.columns:
 # FUNCIONES
 # ============================================================
 
+import unicodedata
+import re
+
+
+# ============================================================
+# LIMPIAR TEXTO
+# ============================================================
+
+def normalizar_texto(valor):
+
+    if pd.isna(valor):
+        return pd.NA
+
+    valor = str(valor).strip()
+
+    if valor == "":
+        return pd.NA
+
+    # Espacios repetidos
+    valor = re.sub(r"\s+", " ", valor)
+
+    # Quitar tildes para comparar
+    valor = unicodedata.normalize("NFD", valor)
+
+    valor = "".join(
+        caracter
+        for caracter in valor
+        if unicodedata.category(caracter) != "Mn"
+    )
+
+    return valor.lower().strip()
+
+
+# ============================================================
+# LIMPIAR CATEGORÍAS
+# ============================================================
+
 def limpiar_categoria(serie):
 
     return (
-        serie.astype(str)
+        serie.astype("string")
         .str.strip()
         .replace({
+            "": pd.NA,
             "nan": pd.NA,
             "None": pd.NA,
-            "": pd.NA,
+            "none": pd.NA,
+            "null": pd.NA,
+            "N/A": pd.NA,
+            "n/a": pd.NA,
             "Sin registro": pd.NA,
-            "N/A": pd.NA
+            "sin registro": pd.NA
         })
     )
 
 
-def porcentaje(valor, total):
-    return 0 if total == 0 else round(valor / total * 100, 1)
+# ============================================================
+# NORMALIZAR ÁREAS PROFESIONALES
+# ============================================================
 
+def normalizar_area(valor):
+
+    valor = normalizar_texto(valor)
+
+    if pd.isna(valor):
+        return pd.NA
+
+    equivalencias = {
+
+        # ADMINISTRACIÓN Y NEGOCIOS
+        "administracion y negocios":
+            "Administración y Negocios",
+
+        # ARQUITECTURA Y DISEÑO
+        "arquitectura y diseno":
+            "Arquitectura y Diseño",
+
+        # CIENCIAS
+        "ciencias":
+            "Ciencias",
+
+        # CIENCIAS SOCIALES Y HUMANIDADES
+        "ciencias sociales y humanidades":
+            "Ciencias Sociales y Humanidades",
+
+        # ECONOMÍA Y FINANZAS
+        "economia y finanzas":
+            "Economía y Finanzas",
+
+        # INGENIERÍA Y TECNOLOGÍA
+        "ingenieria y tecnologia":
+            "Ingeniería y Tecnología"
+    }
+
+    return equivalencias.get(
+        valor,
+        str(valor).strip().title()
+    )
+
+
+# ============================================================
+# NORMALIZAR CARRERAS
+# ============================================================
+
+def normalizar_carrera(valor):
+
+    valor = normalizar_texto(valor)
+
+    if pd.isna(valor):
+        return pd.NA
+
+    equivalencias = {
+
+        # ====================================================
+        # ADMINISTRACIÓN Y NEGOCIOS
+        # ====================================================
+
+        "administracion":
+            "Administración de Empresas",
+
+        "administracion de empresas":
+            "Administración de Empresas",
+
+        "licenciatura en administracion de empresas":
+            "Administración de Empresas",
+
+        "gestion y alta direccion":
+                    "Administración de Empresas",
+
+        "Universitario En Educacion Comercial":
+                            "Administración de Empresas",
+
+        "administracion y marketing":
+            "Administración y Marketing",
+
+        "Administracion y Marketing":
+                        "Administración y Marketing",
+
+        "marketing y administración":
+            "Administración y Marketing",
+
+        "Marketing Y Administracion":
+                    "Administración y Marketing",
+
+
+        "administracion de negocios internacionales":
+            "Administración de Negocios Internacionales",
+
+        "administracion y negocios internacionales":
+            "Administración de Negocios Internacionales",
+
+        "istracion de negocios internacionales":
+            "Administración de Negocios Internacionales",
+
+        "nistracion y negocios internacionales":
+            "Administración de Negocios Internacionales",
+
+        "marketing":
+            "Marketing",
+
+        "marketing digital":
+            "Marketing",
+
+        "marketing estrategico":
+            "Marketing",
+
+        "graduada de marketing":
+            "Marketing",
+
+        "Growth Marketing":
+                    "Marketing",
+
+
+        "economia y negocios internacionales":
+            "Economía y Negocios Internacionales",
+
+        "negocios internacionales":
+            "Negocios Internacionales",
+
+        
+
+
+        # ====================================================
+        # ARQUITECTURA Y DISEÑO
+        # ====================================================
+
+        "diseno grafico":
+            "Diseño Gráfico",
+
+        "diseno grafico digital":
+            "Diseño Gráfico",
+
+        "diseno grafico profesional":
+            "Diseño Gráfico",
+
+        "diseno grafico tecnico":
+            "Diseño Gráfico",
+
+        "bachiller en diseno grafico":
+            "Diseño Gráfico",
+
+        "bachelor's degree in arts, major in graphic design":
+            "Diseño Gráfico",
+
+        "bachiller en arte con mencion en diseno grafico":
+            "Diseño Gráfico",
+
+        "arquitectura":
+            "Arquitectura",
+
+        "arquitectura y urbanismo":
+            "Arquitectura",
+
+        "Bachiller En Arquitectura Y Urbanismo":
+                    "Arquitectura",
+
+        "Arquitectura y Urbanismo":
+                            "Arquitectura",
+
+        "Arquitectura Sostenible":
+                            "Arquitectura",
+
+        "diseno y desarrollo web":
+            "Diseño y Desarrollo Web",
+
+        "diseño y desarrollo web":
+            "Diseño y Desarrollo Web",
+
+        "Programa De Diseno Grafico Publicitario":
+                    "Diseño Gráfico",
+
+        "Programa Especializado en Diseno Instruccional: Aprendizaje Activo y Pedagogia Digital":
+                            "Diseño Gráfico",
+
+    
+
+
+        # ====================================================
+        # CIENCIAS
+        # ====================================================
+
+        "fisica":
+            "Física",
+
+        "matematica":
+            "Matemática",
+
+        "microbiologia y parasitologia":
+            "Microbiología y Parasitología",
+
+        "biologia marina":
+            "Biología Marina",
+
+        "ciencias biologicas":
+            "Ciencias Biológicas",
+
+        "ciencias de la computacion":
+            "Ciencias de la Computación",
+
+
+        # ====================================================
+        # CIENCIAS SOCIALES Y HUMANIDADES
+        # ====================================================
+
+        "psicologia":
+            "Psicología",
+
+        "licenciatura en psicologia":
+            "Psicología",
+
+        "licenciada en psicologia":
+            "Psicología",
+
+        "estudiante de psicologia":
+            "Psicología",
+
+        "Bachiller En Psicologia":
+                    "Psicología",
+
+        "derecho":
+            "Derecho",
+
+        "educacion secundaria":
+            "Educación",
+
+        "comunicacion audiovisual":
+            "Comunicación Audiovisual",
+
+        "ciencias de la comunicacion":
+            "Ciencias de la Comunicación",
+
+        "comunicacion y publicidad":
+            "Comunicación y Publicidad",
+
+
+        # ====================================================
+        # ECONOMÍA Y FINANZAS
+        # ====================================================
+
+        "economia":
+            "Economía",
+
+        "economics":
+            "Economía",
+
+        "estudiante de economia":
+            "Economía",
+
+        "licenciada en economia":
+            "Economía",
+
+        "Economia y Finanzas":
+                    "Economía",
+
+        "contabilidad":
+            "Contabilidad",
+
+        "bachiller en contabilidad":
+            "Contabilidad",
+
+        "Contabilidad y Finanzas":
+                    "Contabilidad",
+
+        "titulada contabilidad tecnica":
+            "Contabilidad",
+
+        "contabilidad y finanzas":
+            "Contabilidad",
+
+        "contabilidad de costos y pye":
+            "Contabilidad",
+
+        "Bachiller En Auditoria y Contabilidad (Mejor Egresado)":
+                    "Contabilidad",
+
+        "contabilidad de costos y pymes":
+            "Contabilidad",
+
+        "corporate finance and economics":
+            "Finanzas",
+
+        "Business Administration, Corporate Finance, And Economics":
+                    "Finanzas",
+
+        "corporate finance, and economics":
+            "Finanzas",
+
+        "diplomado de finanzas empresariales":
+            "Finanzas",
+
+        "Finanzas Personales":
+                    "Finanzas",
+
+        "licenciatura en finanzas":
+            "Finanzas",
+
+        "curso accounting fundamentals":
+            "Contabilidad",
+
+        
+
+        # ====================================================
+        # INGENIERÍA Y TECNOLOGÍA
+        # ====================================================
+
+        "ingenieria industrial":
+            "Ingeniería Industrial",
+
+        "ingenieria ambiental":
+            "Ingeniería Ambiental",
+
+        "ingenieria de sistemas":
+            "Ingeniería de Sistemas",
+
+        "ingenieria de sistemas e informatica":
+            "Ingeniería de Sistemas",
+
+        "ingenieria informatica":
+            "Ingeniería Informática",
+
+        "ingenieria mecatronica":
+            "Ingeniería Mecatrónica",
+
+        "ingenieria civil":
+            "Ingeniería Civil",
+
+        "Bim Aplicado A Topografia y Diseno De Infraestructura Vial":
+                    "Ingeniería Civil",
+
+        "ingenieria de software":
+            "Ingeniería de Software",
+
+        "ingenieria empresarial":
+            "Ingeniería Empresarial",
+
+        "ingenieria empresarial y de sistemas":
+            "Ingeniería Empresarial",
+
+        "ingenieria industrial y comercial":
+            "Ingeniería Industrial",
+
+        "ingenieria economica y de negocios":
+            "Ingeniería Económica y de Negocios",
+
+
+        # ====================================================
+        # SALUD
+        # ====================================================
+
+        "enfermeria":
+            "Enfermería",
+
+        "enfermeria tecnica":
+            "Enfermería",
+
+        "tecnico en enfermeria":
+            "Enfermería",
+
+        "tecnica en enfermeria":
+            "Enfermería",
+
+        "medicina humana":
+            "Medicina Humana",
+
+        "estomatologia":
+            "Estomatología",
+
+        "tec. farmacia":
+            "Farmacia",
+
+        "tecnico en farmacia":
+            "Farmacia",
+
+        "medicina veterinaria y zootecnia":
+            "Medicina Veterinaria y Zootecnia"
+    }
+
+
+    # ========================================================
+    # VALORES QUE NO DEBEN CONTARSE COMO CARRERAS
+    # ========================================================
+
+    no_es_carrera = {
+
+        "design thinking",
+
+        "distincion en competencias matematicas",
+
+        "formacion en competencias matematicas",
+
+        "ingles",
+        "ingles a2 mcer",
+        "ingles basico",
+        "ingles intermedio",
+        "ingles avanzado",
+        "english",
+        "english basic",
+        "english intermediate",
+        "english advanced",
+        "Idioma Ingles",
+        "Curso De Ingles",
+
+        "excel",
+        "excel avanzado",
+        "excel intermedio",
+
+        "certificate",
+        "certificado",
+        "diploma",
+        "diplomado",
+
+        "primaria",
+        "bachiller en ciencias",
+        "other",
+
+        "curso accounting fundamentals",
+
+        'Curso "Accounting Fundamentals"',
+
+        "implementacion de iniciativas sociales",
+
+        "diseno e implementacion de iniciativas sociales",
+
+        "Implementación de Iniciativa Sociales"
+
+
+
+
+    }
+
+
+    if valor in no_es_carrera:
+        return pd.NA
+
+
+    return equivalencias.get(
+    valor,
+    pd.NA
+)
+
+
+# ============================================================
+# PORCENTAJE
+# ============================================================
+
+def porcentaje(valor, total):
+
+    return (
+        0
+        if total == 0
+        else round(valor / total * 100, 1)
+    )
+
+
+# ============================================================
+# CONTAR BOOLEANOS
+# ============================================================
 
 def contar_booleano(df, columna):
 
@@ -168,12 +673,19 @@ def contar_booleano(df, columna):
         return 0
 
     return int(
-        pd.to_numeric(df[columna], errors="coerce")
+        pd.to_numeric(
+            df[columna],
+            errors="coerce"
+        )
         .fillna(0)
         .gt(0)
         .sum()
     )
 
+
+# ============================================================
+# BARRA
+# ============================================================
 
 def crear_barra(data, categoria, valor, color):
 
@@ -184,22 +696,43 @@ def crear_barra(data, categoria, valor, color):
         orientation="h"
     )
 
-    fig.update_traces(marker_color=color)
+    fig.update_traces(
+        marker_color=color
+    )
 
     fig.update_layout(
         height=350,
-        margin=dict(l=10, r=10, t=10, b=10),
+        margin=dict(
+            l=10,
+            r=10,
+            t=10,
+            b=10
+        ),
         plot_bgcolor="white",
         paper_bgcolor="white",
         showlegend=False,
-        xaxis=dict(showticklabels=False, showgrid=False),
-        yaxis=dict(categoryorder="total ascending")
+        xaxis=dict(
+            showticklabels=False,
+            showgrid=False
+        ),
+        yaxis=dict(
+            categoryorder="total ascending"
+        )
     )
 
     return fig
 
 
-def crear_donut(data, nombres, valores, colores):
+# ============================================================
+# DONUT
+# ============================================================
+
+def crear_donut(
+    data,
+    nombres,
+    valores,
+    colores
+):
 
     fig = px.pie(
         data,
@@ -209,18 +742,60 @@ def crear_donut(data, nombres, valores, colores):
     )
 
     fig.update_traces(
-        marker=dict(colors=colores, line=dict(color="white", width=2)),
+        marker=dict(
+            colors=colores,
+            line=dict(
+                color="white",
+                width=2
+            )
+        ),
         textinfo="percent",
         textposition="outside"
     )
 
     fig.update_layout(
         height=350,
-        margin=dict(l=10, r=10, t=10, b=10),
+        margin=dict(
+            l=10,
+            r=10,
+            t=10,
+            b=10
+        ),
         paper_bgcolor="white"
     )
 
     return fig
+
+
+# ============================================================
+# NORMALIZAR CATEGORÍAS DEL DASHBOARD
+# ============================================================
+
+if "area_profesional" in df_dashboard.columns:
+
+    df_dashboard["area_profesional"] = (
+        df_dashboard["area_profesional"]
+        .apply(normalizar_area)
+    )
+
+
+if "carrera_principal" in df_dashboard.columns:
+
+    df_dashboard["carrera_principal"] = (
+        df_dashboard["carrera_principal"]
+        .apply(normalizar_carrera)
+    )
+
+
+# ============================================================
+# SIDEBAR - FILTROS
+# ============================================================
+
+def limpiar_filtros():
+    """Restablece todos los filtros a su valor inicial."""
+    
+    st.session_state["filtro_año"] = "Todos"
+    st.session_state["filtro_area"] = "Todas"
 
 
 # ============================================================
@@ -230,70 +805,154 @@ def crear_donut(data, nombres, valores, colores):
 with st.sidebar:
 
     st.title("Filtros")
-
     st.caption("Refina la información del dashboard")
 
     st.divider()
 
-    # Año
-    años = sorted(
-        df_dashboard["año"].dropna().astype(int).unique()
-    ) if "año" in df_dashboard.columns else []
+    # ========================================================
+    # OPCIONES DE AÑO
+    # ========================================================
+
+    if "año" in df_dashboard.columns:
+
+        años = sorted(
+            df_dashboard["año"]
+            .dropna()
+            .astype(int)
+            .unique()
+            .tolist()
+        )
+
+    else:
+
+        años = []
+
+    # ========================================================
+    # OPCIONES DE ÁREA PROFESIONAL
+    # ========================================================
+
+    if "area_profesional" in df_dashboard.columns:
+
+        areas = sorted(
+            limpiar_categoria(
+                df_dashboard["area_profesional"]
+            )
+            .dropna()
+            .unique()
+            .tolist()
+        )
+
+    else:
+
+        areas = []
+
+    # ========================================================
+    # INICIALIZAR FILTROS
+    # ========================================================
+
+    if "filtro_año" not in st.session_state:
+
+        st.session_state["filtro_año"] = "Todos"
+
+    if "filtro_area" not in st.session_state:
+
+        st.session_state["filtro_area"] = "Todas"
+
+    # ========================================================
+    # FILTRO AÑO
+    # ========================================================
 
     año = st.selectbox(
         "Año",
-        ["Todos"] + años
+        options=["Todos"] + años,
+        key="filtro_año"
     )
 
-    # Área
-    areas = sorted(
-        limpiar_categoria(
-            df_dashboard["area_profesional"]
-        ).dropna().unique()
-    ) if "area_profesional" in df_dashboard.columns else []
+    # ========================================================
+    # FILTRO ÁREA PROFESIONAL
+    # ========================================================
 
     area = st.selectbox(
         "Área profesional",
-        ["Todas"] + areas
+        options=["Todas"] + areas,
+        key="filtro_area"
     )
 
     st.divider()
 
-    if st.button(
-        "Limpiar filtros",
-        use_container_width=True
-    ):
-        st.rerun()
+    # ========================================================
+    # BOTÓN LIMPIAR FILTROS
+    # ========================================================
+
+    st.button(
+        "🧹 Limpiar filtros",
+        use_container_width=True,
+        on_click=limpiar_filtros
+    )
 
 
 # ============================================================
-# FILTRAR
+# FILTRAR DATASET
 # ============================================================
 
 df = df_dashboard.copy()
 
-if año != "Todos":
-    df = df[df["año"] == int(año)]
 
-if area != "Todas":
+# ============================================================
+# FILTRO AÑO
+# ============================================================
+
+if (
+    año != "Todos"
+    and "año" in df.columns
+):
+
     df = df[
-        df["area_profesional"]
-        .astype(str)
-        .eq(area)
+        df["año"].eq(
+            int(año)
+        )
     ]
 
-if "_id_postulante" in df.columns:
-    df = df.drop_duplicates("_id_postulante")
 
+# ============================================================
+# FILTRO ÁREA PROFESIONAL
+# ============================================================
+
+if (
+    area != "Todas"
+    and "area_profesional" in df.columns
+):
+
+    df = df[
+        limpiar_categoria(
+            df["area_profesional"]
+        ).eq(area)
+    ]
+
+
+# ============================================================
+# ELIMINAR DUPLICADOS
+# ============================================================
+
+if "_id_postulante" in df.columns:
+
+    df = df.drop_duplicates(
+        subset="_id_postulante",
+        keep="first"
+    )
+
+
+# ============================================================
+# REINICIAR ÍNDICE
+# ============================================================
+
+df = df.reset_index(drop=True)
 
 # ============================================================
 # TÍTULO
 # ============================================================
 
-st.markdown(
-    '<div class="dashboard-title">Dashboard de Postulantes</div>',
-    unsafe_allow_html=True
-)
+
 
 st.markdown(
     '<div class="dashboard-subtitle">Análisis de perfiles, formación, experiencia y participación en Laboral.AI</div>',
@@ -346,7 +1005,11 @@ c1, c2 = st.columns(2)
 
 with c1:
 
-    st.subheader("Carreras con mayor cantidad de postulantes")
+    st.markdown(
+    "<p style='font-size:16px; font-weight:600; margin-bottom:8px;'>Carreras con mayor cantidad de postulantes</p>",
+    unsafe_allow_html=True
+    )
+
 
     if "carrera_principal" in df.columns:
 
@@ -372,7 +1035,11 @@ with c1:
 
 with c2:
 
-    st.subheader("Áreas profesionales")
+    st.markdown(
+    "<p style='font-size:16px; font-weight:600; margin-bottom:8px;'>Áreas profesionales</p>",
+    unsafe_allow_html=True
+    )
+
 
     if "area_profesional" in df.columns:
 
@@ -407,7 +1074,11 @@ u1, u2 = st.columns(2)
 
 with u1:
 
-    st.subheader("Uso de IA")
+    st.markdown(
+    "<p style='font-size:16px; font-weight:600; margin-bottom:8px;'>Uso de IA</p>",
+    unsafe_allow_html=True
+    )
+
 
     ia_df = pd.DataFrame({
         "Estado": ["Utilizó IA", "No utilizó IA"],
@@ -426,7 +1097,11 @@ with u1:
 
 with u2:
 
-    st.subheader("Participación en eventos")
+    st.markdown(
+    "<p style='font-size:16px; font-weight:600; margin-bottom:8px;'>Participación en eventos</p>",
+    unsafe_allow_html=True
+    )
+
 
     ev_df = pd.DataFrame({
         "Estado": ["Participó", "No participó"],
