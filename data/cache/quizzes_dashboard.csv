@@ -1,0 +1,4 @@
+﻿quiz_id,quiz_key,quiz_nombre,cantidad_preguntas,usuarios_iniciaron,usuarios_completaron,usuarios_en_proceso,estado
+66cbfe3ecb6abc716b509f0f,self-knowledge,Test de autoconocimiento,4,345,6,339,Completado
+68608b9fe2ab83fad047c008,motivator_test,Motivaciones Personales,1,138,0,138,En proceso
+6867488928e1694428437676,perks_test,¿Qué beneficios te motivan?,1,121,0,121,En proceso

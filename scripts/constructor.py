@@ -11,6 +11,7 @@ import unicodedata
 import numpy as np
 import pandas as pd
 
+from app import ROOT
 from scripts.conexion import db
 
 
@@ -303,7 +304,1181 @@ aiconversations = cargar_cache("aiconversations")
 aimessages = cargar_cache("aimessages")
 events = cargar_cache("events")
 eventguests = cargar_cache("eventguests")
+communities = cargar_cache("communities")
+quizzes = cargar_cache("quizzes")
+quizresults = cargar_cache("quizresults")
+userquizdatas = cargar_cache("userquizdatas")
+questions = cargar_cache("questions")
 
+# ============================================================
+# INSPECCIÓN DE DATOS DE QUIZZES
+# ============================================================
+
+print("\n========== INSPECCIÓN DE QUIZZES ==========")
+
+# ------------------------------------------------------------
+# USERQUIZDATAS
+# ------------------------------------------------------------
+
+print("\n--- USERQUIZDATAS ---")
+
+print("Cantidad de registros:", len(userquizdatas))
+
+if "data" in userquizdatas.columns:
+
+    print("\nEjemplos de userquizdatas.data:")
+
+    for i, valor in enumerate(
+        userquizdatas["data"].dropna().head(5)
+    ):
+        print(f"\nRegistro {i + 1}:")
+        print(valor)
+
+else:
+
+    print("⚠️ No existe la columna 'data'")
+
+
+# ------------------------------------------------------------
+# QUIZRESULTS
+# ------------------------------------------------------------
+
+print("\n--- QUIZRESULTS ---")
+
+print("Cantidad de resultados:", len(quizresults))
+
+
+if "items" in quizresults.columns:
+
+    print("\nEjemplos de quizresults.items:")
+
+    for i, valor in enumerate(
+        quizresults["items"].dropna().head(5)
+    ):
+        print(f"\nResultado {i + 1}:")
+        print(valor)
+
+else:
+
+    print("⚠️ No existe la columna 'items'")
+
+
+if "report" in quizresults.columns:
+
+    print("\nEjemplos de quizresults.report:")
+
+    for i, valor in enumerate(
+        quizresults["report"].dropna().head(5)
+    ):
+        print(f"\nReporte {i + 1}:")
+        print(valor)
+
+else:
+
+    print("⚠️ No existe la columna 'report'")
+
+
+# ------------------------------------------------------------
+# INFORMACIÓN GENERAL
+# ------------------------------------------------------------
+
+print("\n--- TIPOS DE DATOS ---")
+
+if "data" in userquizdatas.columns:
+
+    print(
+        "Tipo de userquizdatas.data:",
+        userquizdatas["data"].dropna().map(type).value_counts()
+    )
+
+if "items" in quizresults.columns:
+
+    print(
+        "Tipo de quizresults.items:",
+        quizresults["items"].dropna().map(type).value_counts()
+    )
+
+if "report" in quizresults.columns:
+
+    print(
+        "Tipo de quizresults.report:",
+        quizresults["report"].dropna().map(type).value_counts()
+    )
+
+
+print("\n========== FIN INSPECCIÓN QUIZZES ==========")
+
+
+
+# ============================================================
+# INTERÉS EN CURSOS
+# ============================================================
+
+print("\n========== INTERÉS EN CURSOS ==========")
+
+cursos_interes = pd.DataFrame()
+cursos_interes_validos = pd.DataFrame()
+cursos_resumen_usuario = pd.DataFrame()
+
+# ------------------------------------------------------------
+# VALIDAR COURSEENROLLMENTS
+# ------------------------------------------------------------
+
+if not courseenrollments.empty:
+
+    print("Analizando courseenrollments...")
+
+    ce = courseenrollments.copy()
+
+    print("Columnas courseenrollments:")
+    print(ce.columns.tolist())
+
+    # --------------------------------------------------------
+    # BUSCAR ID DEL USUARIO
+    # --------------------------------------------------------
+
+    posibles_user = [
+        "userId",
+        "user_id",
+        "userid",
+        "user",
+        "_id_user"
+    ]
+
+    columna_user = None
+
+    for col in posibles_user:
+        if col in ce.columns:
+            columna_user = col
+            break
+
+    # --------------------------------------------------------
+    # BUSCAR ID DEL CURSO
+    # --------------------------------------------------------
+
+    posibles_curso = [
+        "courseId",
+        "course_id",
+        "courseid",
+        "course",
+        "_id_course"
+    ]
+
+    columna_curso = None
+
+    for col in posibles_curso:
+        if col in ce.columns:
+            columna_curso = col
+            break
+
+    print(f"Columna usuario encontrada: {columna_user}")
+    print(f"Columna curso encontrada: {columna_curso}")
+
+    # --------------------------------------------------------
+    # SI ENCONTRAMOS AMBOS CAMPOS
+    # --------------------------------------------------------
+
+    if columna_user and columna_curso:
+
+        cursos_interes = ce[
+            [columna_user, columna_curso]
+        ].copy()
+
+        cursos_interes = cursos_interes.rename(
+            columns={
+                columna_user: "_id_user",
+                columna_curso: "_id_course"
+            }
+        )
+
+        # ----------------------------------------------------
+        # NORMALIZAR IDs
+        # ----------------------------------------------------
+
+        cursos_interes["_id_user"] = (
+            cursos_interes["_id_user"]
+            .astype(str)
+            .str.strip()
+        )
+
+        cursos_interes["_id_course"] = (
+            cursos_interes["_id_course"]
+            .astype(str)
+            .str.strip()
+        )
+
+        # ----------------------------------------------------
+        # ELIMINAR IDS VACÍOS
+        # ----------------------------------------------------
+
+        cursos_interes = cursos_interes[
+            (cursos_interes["_id_user"] != "") &
+            (cursos_interes["_id_course"] != "") &
+            (cursos_interes["_id_user"] != "nan") &
+            (cursos_interes["_id_course"] != "nan") &
+            (cursos_interes["_id_user"] != "None") &
+            (cursos_interes["_id_course"] != "None")
+        ].copy()
+
+        # ----------------------------------------------------
+        # CRUZAR CON COURSES
+        # ----------------------------------------------------
+
+        if not courses.empty:
+
+            cursos = courses.copy()
+
+            # Normalizar ID del curso
+            if "_id" in cursos.columns:
+
+                cursos["_id_course"] = (
+                    cursos["_id"]
+                    .astype(str)
+                    .str.strip()
+                )
+
+            elif "id" in cursos.columns:
+
+                cursos["_id_course"] = (
+                    cursos["id"]
+                    .astype(str)
+                    .str.strip()
+                )
+
+            else:
+
+                cursos["_id_course"] = ""
+
+            # ------------------------------------------------
+            # BUSCAR NOMBRE DEL CURSO
+            # ------------------------------------------------
+
+            posibles_nombre = [
+                "name",
+                "title",
+                "courseName",
+                "course_name",
+                "nombre",
+                "nombreCurso"
+            ]
+
+            columna_nombre = None
+
+            for col in posibles_nombre:
+
+                if col in cursos.columns:
+                    columna_nombre = col
+                    break
+
+            print(
+                f"Columna nombre curso encontrada: "
+                f"{columna_nombre}"
+            )
+
+            if columna_nombre:
+
+                cursos_nombre = cursos[
+                    ["_id_course", columna_nombre]
+                ].copy()
+
+                cursos_nombre = cursos_nombre.rename(
+                    columns={
+                        columna_nombre: "curso"
+                    }
+                )
+
+                cursos_nombre = (
+                    cursos_nombre
+                    .drop_duplicates(
+                        subset="_id_course"
+                    )
+                )
+
+                cursos_interes = cursos_interes.merge(
+                    cursos_nombre,
+                    on="_id_course",
+                    how="left"
+                )
+
+            else:
+
+                cursos_interes["curso"] = (
+                    cursos_interes["_id_course"]
+                )
+
+            # ------------------------------------------------
+            # BUSCAR CATEGORÍA DEL CURSO
+            # ------------------------------------------------
+
+            posibles_categoria = [
+                "type",
+                "category",
+                "categoria",
+                "courseType",
+                "course_type"
+            ]
+
+            columna_categoria = None
+
+            for col in posibles_categoria:
+
+                if col in cursos.columns:
+                    columna_categoria = col
+                    break
+
+            print(
+                f"Columna categoría encontrada: "
+                f"{columna_categoria}"
+            )
+
+            if columna_categoria:
+
+                cursos_categoria = cursos[
+                    ["_id_course", columna_categoria]
+                ].copy()
+
+                cursos_categoria = cursos_categoria.rename(
+                    columns={
+                        columna_categoria: "categoria_curso"
+                    }
+                )
+
+                cursos_categoria = (
+                    cursos_categoria
+                    .drop_duplicates(
+                        subset="_id_course"
+                    )
+                )
+
+                cursos_interes = cursos_interes.merge(
+                    cursos_categoria,
+                    on="_id_course",
+                    how="left"
+                )
+
+            else:
+
+                cursos_interes[
+                    "categoria_curso"
+                ] = "Sin categoría"
+
+        else:
+
+            cursos_interes["curso"] = (
+                cursos_interes["_id_course"]
+            )
+
+            cursos_interes[
+                "categoria_curso"
+            ] = "Sin categoría"
+
+        # ----------------------------------------------------
+        # CRUZAR CON USERS
+        # ----------------------------------------------------
+
+        if not users.empty and "_id" in users.columns:
+
+            usuarios = users.copy()
+
+            usuarios["_id_user"] = (
+                usuarios["_id"]
+                .astype(str)
+                .str.strip()
+            )
+
+            columnas_usuario = [
+                "_id_user"
+            ]
+
+            for col in [
+                "firstName",
+                "lastName",
+                "email"
+            ]:
+
+                if col in usuarios.columns:
+                    columnas_usuario.append(col)
+
+            usuarios_info = (
+                usuarios[
+                    columnas_usuario
+                ]
+                .drop_duplicates(
+                    subset="_id_user"
+                )
+            )
+
+            cursos_interes = cursos_interes.merge(
+                usuarios_info,
+                on="_id_user",
+                how="left"
+            )
+
+        # ----------------------------------------------------
+        # ELIMINAR DUPLICADOS
+        # ----------------------------------------------------
+
+        cursos_interes = (
+            cursos_interes
+            .drop_duplicates()
+            .reset_index(drop=True)
+        )
+
+        # ----------------------------------------------------
+        # VALIDAR REGISTROS
+        # ----------------------------------------------------
+
+        cursos_interes_validos = cursos_interes[
+            cursos_interes["_id_user"].notna() &
+            cursos_interes["_id_course"].notna()
+        ].copy()
+
+        print(
+            f"Registros de interés en cursos: "
+            f"{len(cursos_interes_validos)}"
+        )
+
+        print(
+            f"Usuarios únicos: "
+            f"{cursos_interes_validos['_id_user'].nunique()}"
+        )
+
+        print(
+            f"Cursos únicos: "
+            f"{cursos_interes_validos['_id_course'].nunique()}"
+        )
+
+        # ----------------------------------------------------
+        # CURSOS MÁS INTERESADOS
+        # ----------------------------------------------------
+
+        if "curso" in cursos_interes_validos.columns:
+
+            print("\n========== CURSOS DE INTERÉS ==========")
+
+            print(
+                cursos_interes_validos[
+                    "curso"
+                ]
+                .value_counts()
+                .head(20)
+            )
+
+        # ----------------------------------------------------
+        # RESUMEN POR USUARIO
+        # ----------------------------------------------------
+
+        cursos_resumen_usuario = (
+            cursos_interes_validos
+            .groupby("_id_user")
+            .agg(
+                cantidad_cursos=(
+                    "_id_course",
+                    "nunique"
+                ),
+                total_registros_curso=(
+                    "_id_course",
+                    "count"
+                )
+            )
+            .reset_index()
+        )
+
+        # ----------------------------------------------------
+        # CATEGORÍA MÁS INTERESADA POR USUARIO
+        # ----------------------------------------------------
+
+        if "categoria_curso" in cursos_interes_validos.columns:
+
+            categoria_usuario = (
+                cursos_interes_validos[
+                    [
+                        "_id_user",
+                        "categoria_curso"
+                    ]
+                ]
+                .copy()
+            )
+
+            categoria_usuario[
+                "categoria_curso"
+            ] = (
+                categoria_usuario[
+                    "categoria_curso"
+                ]
+                .fillna("Sin categoría")
+                .astype(str)
+                .str.strip()
+            )
+
+            conteo_categoria = (
+                categoria_usuario
+                .groupby(
+                    [
+                        "_id_user",
+                        "categoria_curso"
+                    ]
+                )
+                .size()
+                .reset_index(
+                    name="cantidad"
+                )
+            )
+
+            # Categoría con mayor cantidad por usuario
+            categoria_mayor = (
+                conteo_categoria
+                .sort_values(
+                    [
+                        "_id_user",
+                        "cantidad",
+                        "categoria_curso"
+                    ],
+                    ascending=[
+                        True,
+                        False,
+                        True
+                    ]
+                )
+                .drop_duplicates(
+                    subset="_id_user"
+                )
+            )
+
+            categoria_mayor = categoria_mayor.rename(
+                columns={
+                    "categoria_curso":
+                        "categoria_curso_mas_interesada"
+                }
+            )
+
+            categoria_mayor = categoria_mayor[
+                [
+                    "_id_user",
+                    "categoria_curso_mas_interesada"
+                ]
+            ]
+
+            cursos_resumen_usuario = (
+                cursos_resumen_usuario
+                .merge(
+                    categoria_mayor,
+                    on="_id_user",
+                    how="left"
+                )
+            )
+
+            # ------------------------------------------------
+            # CANTIDAD DE CATEGORÍAS POR USUARIO
+            # ------------------------------------------------
+
+            total_categorias = (
+                categoria_usuario
+                .groupby("_id_user")[
+                    "categoria_curso"
+                ]
+                .nunique()
+                .reset_index(
+                    name="total_categorias_curso"
+                )
+            )
+
+            cursos_resumen_usuario = (
+                cursos_resumen_usuario
+                .merge(
+                    total_categorias,
+                    on="_id_user",
+                    how="left"
+                )
+            )
+
+        else:
+
+            cursos_resumen_usuario[
+                "categoria_curso_mas_interesada"
+            ] = np.nan
+
+            cursos_resumen_usuario[
+                "total_categorias_curso"
+            ] = 0
+
+        # ----------------------------------------------------
+        # CANTIDAD DE POSTULANTES POR CATEGORÍA
+        # ----------------------------------------------------
+
+        if "categoria_curso" in cursos_interes_validos.columns:
+
+            postulantes_categoria = (
+                cursos_interes_validos[
+                    [
+                        "_id_user",
+                        "categoria_curso"
+                    ]
+                ]
+                .drop_duplicates()
+                .groupby(
+                    "categoria_curso"
+                )["_id_user"]
+                .nunique()
+                .reset_index(
+                    name="postulantes_categoria_curso"
+                )
+            )
+
+            cursos_resumen_usuario = (
+                cursos_resumen_usuario
+                .merge(
+                    postulantes_categoria,
+                    left_on=
+                        "categoria_curso_mas_interesada",
+                    right_on=
+                        "categoria_curso",
+                    how="left"
+                )
+            )
+
+            cursos_resumen_usuario = (
+                cursos_resumen_usuario
+                .drop(
+                    columns=[
+                        "categoria_curso"
+                    ],
+                    errors="ignore"
+                )
+                .rename(
+                    columns={
+                        "postulantes_categoria_curso":
+                            "postulantes_categoria_curso_mas_interesada"
+                    }
+                )
+            )
+
+        else:
+
+            cursos_resumen_usuario[
+                "postulantes_categoria_curso_mas_interesada"
+            ] = 0
+
+        # ----------------------------------------------------
+        # ASEGURAR COLUMNAS
+        # ----------------------------------------------------
+
+        for col in [
+            "cantidad_cursos",
+            "total_registros_curso",
+            "total_categorias_curso",
+            "postulantes_categoria_curso_mas_interesada"
+        ]:
+
+            if col not in cursos_resumen_usuario.columns:
+
+                cursos_resumen_usuario[col] = 0
+
+        # ----------------------------------------------------
+        # MOSTRAR RESUMEN
+        # ----------------------------------------------------
+
+        print("\n========== RESUMEN POR USUARIO ==========")
+
+        print(
+            cursos_resumen_usuario.head(20).to_string(
+                index=False
+            )
+        )
+
+    else:
+
+        print(
+            "⚠️ No se encontraron automáticamente "
+            "las columnas user/course."
+        )
+
+else:
+
+    print(
+        "⚠️ courseenrollments está vacío."
+    )
+
+# ============================================================
+# GUARDAR DETALLE DE CURSOS
+# ============================================================
+
+if not cursos_interes.empty:
+
+    cursos_interes.to_csv(
+        os.path.join(
+            OUTPUT_DIR,
+            "cursos_interes_dashboard.csv"
+        ),
+        index=False,
+        encoding="utf-8-sig"
+    )
+
+    print()
+    print(
+        "💾 Cursos de interés guardados:"
+    )
+
+    print(
+        "   data/cache/cursos_interes_dashboard.csv"
+    )
+
+else:
+
+    print(
+        "\n⚠️ No existen registros de cursos_interes."
+    )
+# ============================================================
+# CÓDIGOS DE ALIADOS Y LABORAL HEROS
+# ============================================================
+
+print()
+print(
+    "========== CÓDIGOS ALIADOS / LABORAL HEROS =========="
+)
+
+
+def normalizar_codigo(valor):
+
+    if valor is None:
+        return ""
+
+    try:
+        if pd.isna(valor):
+            return ""
+    except Exception:
+        pass
+
+    return (
+        str(valor)
+        .strip()
+        .upper()
+        .replace(" ", "")
+        .replace("-", "")
+        .replace("_", "")
+    )
+
+
+# ------------------------------------------------------------
+# PREPARAR CÓDIGOS DE COMMUNITIES
+# ------------------------------------------------------------
+
+codigos_aliados = set()
+
+if not communities.empty:
+
+    columna_code = buscar_columna(
+        communities,
+        [
+            "code",
+            "Code",
+            "CODE",
+        ],
+    )
+
+    if columna_code:
+
+        codigos_aliados = set(
+            communities[
+                columna_code
+            ]
+            .apply(normalizar_codigo)
+            .loc[
+                lambda s: s != ""
+            ]
+            .unique()
+        )
+
+        print(
+            f"Códigos Aliados encontrados: "
+            f"{len(codigos_aliados)}"
+        )
+
+    else:
+
+        print(
+            "⚠️ communities no contiene "
+            "la columna code."
+        )
+
+else:
+
+    print(
+        "⚠️ communities está vacío."
+    )
+
+
+# ------------------------------------------------------------
+# PREPARAR USERS
+# ------------------------------------------------------------
+
+columna_codigo_user = buscar_columna(
+    users,
+    [
+        "usedInvitationCode",
+        "used_invitation_code",
+    ],
+)
+
+if columna_codigo_user:
+
+    usuarios_codigos = users.copy()
+
+    usuarios_codigos[
+        "_codigo_normalizado"
+    ] = (
+        usuarios_codigos[
+            columna_codigo_user
+        ]
+        .apply(normalizar_codigo)
+    )
+
+else:
+
+    usuarios_codigos = users.copy()
+
+    usuarios_codigos[
+        "_codigo_normalizado"
+    ] = ""
+
+    print(
+        "⚠️ users no contiene "
+        "usedInvitationCode."
+    )
+
+
+# ------------------------------------------------------------
+# CLASIFICAR CÓDIGOS UTILIZADOS
+# ------------------------------------------------------------
+
+usuarios_con_codigo = (
+    usuarios_codigos[
+        usuarios_codigos[
+            "_codigo_normalizado"
+        ] != ""
+    ]
+    .copy()
+)
+
+
+usuarios_con_codigo[
+    "_origen_codigo"
+] = np.where(
+    usuarios_con_codigo[
+        "_codigo_normalizado"
+    ].isin(
+        codigos_aliados
+    ),
+    "Aliados",
+    "Laboral Heros",
+)
+
+
+# ============================================================
+# DATASET DE CÓDIGOS
+# ============================================================
+
+codigos_laboral_heros_aliados = (
+    usuarios_con_codigo
+    .groupby(
+        [
+            "_codigo_normalizado",
+            "_origen_codigo",
+        ],
+        as_index=False,
+    )
+    .size()
+    .rename(
+        columns={
+            "_codigo_normalizado":
+                "codigo",
+
+            "_origen_codigo":
+                "origen",
+
+            "size":
+                "counter",
+        }
+    )
+)
+
+
+# Ordenar para facilitar lectura
+codigos_laboral_heros_aliados = (
+    codigos_laboral_heros_aliados
+    .sort_values(
+        [
+            "origen",
+            "counter",
+        ],
+        ascending=[
+            True,
+            False,
+        ],
+    )
+    .reset_index(
+        drop=True
+    )
+)
+
+
+# ============================================================
+# USUARIOS INVITADOS POR ALIADOS
+# ============================================================
+
+usuarios_invitados_aliados = (
+    usuarios_con_codigo[
+        usuarios_con_codigo[
+            "_origen_codigo"
+        ] == "Aliados"
+    ]
+    .copy()
+)
+
+
+columna_first = buscar_columna(
+    usuarios_invitados_aliados,
+    [
+        "firstName",
+        "firstname",
+        "first_name",
+    ],
+)
+
+columna_last = buscar_columna(
+    usuarios_invitados_aliados,
+    [
+        "lastName",
+        "lastname",
+        "last_name",
+    ],
+)
+
+
+if columna_first:
+
+    usuarios_invitados_aliados[
+        "firstName"
+    ] = usuarios_invitados_aliados[
+        columna_first
+    ]
+
+else:
+
+    usuarios_invitados_aliados[
+        "firstName"
+    ] = np.nan
+
+
+if columna_last:
+
+    usuarios_invitados_aliados[
+        "lastName"
+    ] = usuarios_invitados_aliados[
+        columna_last
+    ]
+
+else:
+
+    usuarios_invitados_aliados[
+        "lastName"
+    ] = np.nan
+
+
+if "isActive" not in usuarios_invitados_aliados.columns:
+
+    usuarios_invitados_aliados[
+        "isActive"
+    ] = False
+
+
+usuarios_invitados_aliados = (
+    usuarios_invitados_aliados[
+        [
+            "_id",
+            "firstName",
+            "lastName",
+            "_codigo_normalizado",
+            "isActive",
+        ]
+    ]
+    .rename(
+        columns={
+            "_id":
+                "usuario_id",
+
+            "_codigo_normalizado":
+                "codigo_aliado",
+        }
+    )
+)
+
+
+# ============================================================
+# USUARIOS INVITADOS POR LABORAL HEROS
+# ============================================================
+
+usuarios_invitados_laboral_heros = (
+    usuarios_con_codigo[
+        usuarios_con_codigo[
+            "_origen_codigo"
+        ] == "Laboral Heros"
+    ]
+    .copy()
+)
+
+
+if columna_first:
+
+    usuarios_invitados_laboral_heros[
+        "firstName"
+    ] = usuarios_invitados_laboral_heros[
+        columna_first
+    ]
+
+else:
+
+    usuarios_invitados_laboral_heros[
+        "firstName"
+    ] = np.nan
+
+
+if columna_last:
+
+    usuarios_invitados_laboral_heros[
+        "lastName"
+    ] = usuarios_invitados_laboral_heros[
+        columna_last
+    ]
+
+else:
+
+    usuarios_invitados_laboral_heros[
+        "lastName"
+    ] = np.nan
+
+
+if "isActive" not in usuarios_invitados_laboral_heros.columns:
+
+    usuarios_invitados_laboral_heros[
+        "isActive"
+    ] = False
+
+
+usuarios_invitados_laboral_heros = (
+    usuarios_invitados_laboral_heros[
+        [
+            "_id",
+            "firstName",
+            "lastName",
+            "_codigo_normalizado",
+            "isActive",
+        ]
+    ]
+    .rename(
+        columns={
+            "_id":
+                "usuario_id",
+
+            "_codigo_normalizado":
+                "codigo_LaboralHeros",
+        }
+    )
+)
+
+
+# ============================================================
+# VALIDACIÓN CÓDIGOS
+# ============================================================
+
+print()
+print(
+    "========== VALIDACIÓN CÓDIGOS =========="
+)
+
+print(
+    "Usuarios con código:",
+    len(usuarios_con_codigo),
+)
+
+print(
+    "Usuarios invitados por Aliados:",
+    len(usuarios_invitados_aliados),
+)
+
+print(
+    "Usuarios invitados por Laboral Heros:",
+    len(usuarios_invitados_laboral_heros),
+)
+
+print(
+    "Códigos únicos:",
+    len(codigos_laboral_heros_aliados),
+)
+
+print()
+print(
+    codigos_laboral_heros_aliados
+)
+
+
+# ============================================================
+# GUARDAR DATASETS DE CÓDIGOS
+# ============================================================
+
+ruta_codigos = os.path.join(
+    OUTPUT_DIR,
+    "codigos_laboral_heros_aliados.csv",
+)
+
+ruta_usuarios_aliados = os.path.join(
+    OUTPUT_DIR,
+    "usuarios_invitados_aliados.csv",
+)
+
+ruta_usuarios_laboral_heros = os.path.join(
+    OUTPUT_DIR,
+    "usuarios_invitados_laboral_heros.csv",
+)
+
+
+codigos_laboral_heros_aliados.to_csv(
+    ruta_codigos,
+    index=False,
+    encoding="utf-8-sig",
+)
+
+
+usuarios_invitados_aliados.to_csv(
+    ruta_usuarios_aliados,
+    index=False,
+    encoding="utf-8-sig",
+)
+
+
+usuarios_invitados_laboral_heros.to_csv(
+    ruta_usuarios_laboral_heros,
+    index=False,
+    encoding="utf-8-sig",
+)
+
+
+print()
+print(
+    "💾 Códigos guardados:"
+)
+
+print(
+    ruta_codigos
+)
+
+print(
+    ruta_usuarios_aliados
+)
+
+print(
+    ruta_usuarios_laboral_heros
+)
 
 # ============================================================
 # VALIDACIÓN DE COLECCIONES
@@ -328,6 +1503,11 @@ colecciones = {
     "aimessages": aimessages,
     "events": events,
     "eventguests": eventguests,
+    "communities": communities,
+     "quizzes": quizzes,
+    "quizresults": quizresults,
+    "userquizdatas": userquizdatas,
+    "questions": questions,
 }
 
 for nombre, df in colecciones.items():
@@ -2697,6 +3877,649 @@ else:
         "participaciones vinculadas."
     )
 
+# ============================================================
+# CÓDIGOS DE INVITACIÓN
+# ALIADOS + LABORAL HEROS
+# ============================================================
+
+print()
+print(
+    "========== CRUCE CÓDIGOS DE INVITACIÓN =========="
+)
+
+
+def normalizar_codigo(valor):
+
+    if valor is None:
+        return ""
+
+    try:
+        if pd.isna(valor):
+            return ""
+    except Exception:
+        pass
+
+    return (
+        str(valor)
+        .strip()
+        .upper()
+        .replace(" ", "")
+        .replace("-", "")
+        .replace("_", "")
+    )
+
+
+# ============================================================
+# VALIDAR COMMUNITIES
+# ============================================================
+
+if "code" not in communities.columns:
+
+    raise ValueError(
+        "❌ La colección communities no contiene la columna 'code'."
+    )
+
+
+if "usedInvitationCode" not in users.columns:
+
+    raise ValueError(
+        "❌ La colección users no contiene 'usedInvitationCode'."
+    )
+
+
+# ============================================================
+# NORMALIZAR CÓDIGOS
+# ============================================================
+
+users["_codigo_invitacion_normalizado"] = (
+    users["usedInvitationCode"]
+    .apply(normalizar_codigo)
+)
+
+communities["_codigo_aliado_normalizado"] = (
+    communities["code"]
+    .apply(normalizar_codigo)
+)
+
+
+# ============================================================
+# CÓDIGOS DE ALIADOS
+# ============================================================
+
+codigos_aliados = set(
+    communities.loc[
+        communities[
+            "_codigo_aliado_normalizado"
+        ] != "",
+        "_codigo_aliado_normalizado"
+    ]
+    .unique()
+)
+
+
+# ============================================================
+# CÓDIGOS UTILIZADOS POR USERS
+# ============================================================
+
+users_con_codigo = users[
+    users[
+        "_codigo_invitacion_normalizado"
+    ] != ""
+].copy()
+
+
+codigos_users = set(
+    users_con_codigo[
+        "_codigo_invitacion_normalizado"
+    ]
+    .unique()
+)
+
+
+# ============================================================
+# CLASIFICAR CÓDIGOS
+# ============================================================
+
+codigos_aliados_usados = (
+    codigos_users
+    .intersection(
+        codigos_aliados
+    )
+)
+
+
+codigos_laboral_heros = (
+    codigos_users
+    - codigos_aliados
+)
+
+
+print(
+    f"🤝 Códigos de Aliados: "
+    f"{len(codigos_aliados)}"
+)
+
+print(
+    f"👤 Códigos utilizados por users: "
+    f"{len(codigos_users)}"
+)
+
+print(
+    f"✅ Códigos de Aliados utilizados: "
+    f"{len(codigos_aliados_usados)}"
+)
+
+print(
+    f"🦸 Códigos Laboral Heros: "
+    f"{len(codigos_laboral_heros)}"
+)
+
+
+# ============================================================
+# TABLA DE CÓDIGOS
+# ============================================================
+
+conteo_usuarios_codigo = (
+    users_con_codigo
+    .groupby(
+        "_codigo_invitacion_normalizado"
+    )
+    .size()
+    .reset_index(
+        name="counter"
+    )
+)
+
+
+# ============================================================
+# ALIADOS
+# ============================================================
+
+df_aliados = pd.DataFrame(
+    {
+        "codigo_normalizado":
+            list(codigos_aliados)
+    }
+)
+
+
+df_aliados = df_aliados.merge(
+    conteo_usuarios_codigo,
+    left_on="codigo_normalizado",
+    right_on="_codigo_invitacion_normalizado",
+    how="left",
+)
+
+
+df_aliados["counter"] = (
+    df_aliados["counter"]
+    .fillna(0)
+    .astype(int)
+)
+
+
+# Código original de communities
+
+codigos_originales = (
+    communities.loc[
+        communities[
+            "_codigo_aliado_normalizado"
+        ] != "",
+        [
+            "_codigo_aliado_normalizado",
+            "code",
+        ],
+    ]
+    .drop_duplicates(
+        subset=[
+            "_codigo_aliado_normalizado"
+        ]
+    )
+)
+
+
+df_aliados = df_aliados.merge(
+    codigos_originales,
+    left_on="codigo_normalizado",
+    right_on="_codigo_aliado_normalizado",
+    how="left",
+)
+
+
+df_aliados["codigo"] = (
+    df_aliados["code"]
+)
+
+
+df_aliados["origen"] = "Aliados"
+
+
+df_aliados = df_aliados[
+    [
+        "codigo",
+        "origen",
+        "counter",
+    ]
+]
+
+
+# ============================================================
+# LABORAL HEROS
+# ============================================================
+
+df_laboral_heros = (
+    conteo_usuarios_codigo[
+        conteo_usuarios_codigo[
+            "_codigo_invitacion_normalizado"
+        ].isin(
+            codigos_laboral_heros
+        )
+    ]
+    .copy()
+)
+
+
+df_laboral_heros["codigo"] = (
+    df_laboral_heros[
+        "_codigo_invitacion_normalizado"
+    ]
+)
+
+
+df_laboral_heros["origen"] = (
+    "Laboral Heros"
+)
+
+
+df_laboral_heros = df_laboral_heros[
+    [
+        "codigo",
+        "origen",
+        "counter",
+    ]
+]
+
+
+# ============================================================
+# UNIR TABLA DE CÓDIGOS
+# ============================================================
+
+df_codigos = pd.concat(
+    [
+        df_aliados,
+        df_laboral_heros,
+    ],
+    ignore_index=True,
+)
+
+
+df_codigos = (
+    df_codigos
+    .drop_duplicates(
+        subset=[
+            "codigo"
+        ]
+    )
+    .sort_values(
+        by=[
+            "origen",
+            "codigo",
+        ]
+    )
+    .reset_index(
+        drop=True
+    )
+)
+
+
+# ============================================================
+# USUARIOS INVITADOS POR ALIADOS
+# ============================================================
+
+df_usuarios_aliados = users[
+    users[
+        "_codigo_invitacion_normalizado"
+    ].isin(
+        codigos_aliados
+    )
+].copy()
+
+
+df_usuarios_aliados[
+    "codigo_aliado"
+] = (
+    df_usuarios_aliados[
+        "usedInvitationCode"
+    ]
+    .astype(str)
+    .str.strip()
+)
+
+
+df_usuarios_aliados = df_usuarios_aliados[
+    [
+        "_id",
+        "firstName",
+        "lastName",
+        "codigo_aliado",
+        "isActive",
+    ]
+].copy()
+
+
+df_usuarios_aliados = (
+    df_usuarios_aliados
+    .rename(
+        columns={
+            "_id": "usuario_id"
+        }
+    )
+    .drop_duplicates(
+        subset=[
+            "usuario_id"
+        ]
+    )
+    .reset_index(
+        drop=True
+    )
+)
+
+
+# ============================================================
+# USUARIOS INVITADOS POR LABORAL HEROS
+# ============================================================
+
+df_usuarios_heros = users[
+    users[
+        "_codigo_invitacion_normalizado"
+    ].isin(
+        codigos_laboral_heros
+    )
+].copy()
+
+
+df_usuarios_heros[
+    "codigo_LaboralHeros"
+] = (
+    df_usuarios_heros[
+        "usedInvitationCode"
+    ]
+    .astype(str)
+    .str.strip()
+)
+
+
+df_usuarios_heros = df_usuarios_heros[
+    [
+        "_id",
+        "firstName",
+        "lastName",
+        "codigo_LaboralHeros",
+        "isActive",
+    ]
+].copy()
+
+
+df_usuarios_heros = (
+    df_usuarios_heros
+    .rename(
+        columns={
+            "_id": "usuario_id"
+        }
+    )
+    .drop_duplicates(
+        subset=[
+            "usuario_id"
+        ]
+    )
+    .reset_index(
+        drop=True
+    )
+)
+
+
+# ============================================================
+# MARCAR ORIGEN EN EL DATASET PRINCIPAL
+# ============================================================
+
+df_users_cv[
+    "origen_invitacion"
+] = "Sin código"
+
+
+df_users_cv[
+    "codigo_invitacion"
+] = np.nan
+
+
+df_users_cv[
+    "cantidad_invitados"
+] = 0
+
+
+# Mapa usuario → código/origen
+
+mapa_invitaciones = users[
+    [
+        "_id",
+        "usedInvitationCode",
+        "_codigo_invitacion_normalizado",
+    ]
+].copy()
+
+
+mapa_invitaciones = (
+    mapa_invitaciones
+    .rename(
+        columns={
+            "_id":
+                "_id_postulante"
+        }
+    )
+)
+
+
+mapa_invitaciones[
+    "_id_postulante"
+] = (
+    mapa_invitaciones[
+        "_id_postulante"
+    ]
+    .apply(limpiar_id)
+)
+
+
+mapa_invitaciones[
+    "codigo_invitacion"
+] = (
+    mapa_invitaciones[
+        "usedInvitationCode"
+    ]
+    .replace(
+        [
+            "",
+            "nan",
+            "None",
+            "null",
+        ],
+        np.nan,
+    )
+)
+
+
+mapa_invitaciones[
+    "origen_invitacion"
+] = np.where(
+    mapa_invitaciones[
+        "_codigo_invitacion_normalizado"
+    ].isin(
+        codigos_aliados
+    ),
+    "Aliados",
+    np.where(
+        mapa_invitaciones[
+            "_codigo_invitacion_normalizado"
+        ].isin(
+            codigos_laboral_heros
+        ),
+        "Laboral Heros",
+        "Sin código",
+    ),
+)
+
+
+df_users_cv = df_users_cv.merge(
+    mapa_invitaciones[
+        [
+            "_id_postulante",
+            "codigo_invitacion",
+            "origen_invitacion",
+        ]
+    ],
+    on="_id_postulante",
+    how="left",
+    suffixes=(
+        "",
+        "_invitacion",
+    ),
+)
+
+
+df_users_cv[
+    "codigo_invitacion"
+] = (
+    df_users_cv[
+        "codigo_invitacion_invitacion"
+    ]
+    .combine_first(
+        df_users_cv[
+            "codigo_invitacion"
+        ]
+    )
+)
+
+
+df_users_cv[
+    "origen_invitacion"
+] = (
+    df_users_cv[
+        "origen_invitacion_invitacion"
+    ]
+    .combine_first(
+        df_users_cv[
+            "origen_invitacion"
+        ]
+    )
+)
+
+
+df_users_cv = df_users_cv.drop(
+    columns=[
+        "codigo_invitacion_invitacion",
+        "origen_invitacion_invitacion",
+    ],
+    errors="ignore",
+)
+
+
+# ============================================================
+# VALIDACIÓN
+# ============================================================
+
+print()
+print(
+    "========== VALIDACIÓN CÓDIGOS =========="
+)
+
+
+print(
+    "Usuarios invitados por Aliados:",
+    len(
+        df_usuarios_aliados
+    ),
+)
+
+
+print(
+    "Usuarios invitados por Laboral Heros:",
+    len(
+        df_usuarios_heros
+    ),
+)
+
+
+print(
+    "Usuarios con código:",
+    len(
+        users_con_codigo
+    ),
+)
+
+
+print(
+    "Distribución:"
+)
+
+
+print(
+    df_codigos[
+        "origen"
+    ].value_counts()
+)
+
+
+# ============================================================
+# GUARDAR CACHE
+# ============================================================
+
+df_codigos.to_csv(
+    os.path.join(
+        OUTPUT_DIR,
+        "codigos_laboral_heros_aliados.csv",
+    ),
+    index=False,
+    encoding="utf-8-sig",
+)
+
+
+df_usuarios_aliados.to_csv(
+    os.path.join(
+        OUTPUT_DIR,
+        "usuarios_invitados_aliados.csv",
+    ),
+    index=False,
+    encoding="utf-8-sig",
+)
+
+
+df_usuarios_heros.to_csv(
+    os.path.join(
+        OUTPUT_DIR,
+        "usuarios_invitados_laboral_heros.csv",
+    ),
+    index=False,
+    encoding="utf-8-sig",
+)
+
+
+print()
+print(
+    "💾 Caches de invitaciones guardados:"
+)
+
+
+print(
+    "   data/cache/codigos_laboral_heros_aliados.csv"
+)
+
+print(
+    "   data/cache/usuarios_invitados_aliados.csv"
+)
+
+print(
+    "   data/cache/usuarios_invitados_laboral_heros.csv"
+)
+
 
 # ============================================================
 # MODALIDAD LABORAL
@@ -2857,6 +4680,16 @@ columnas_base = {
 
     "cantidad_cursos": 0,
 
+    "total_registros_curso": 0,
+
+    "categoria_curso_mas_interesada":np.nan,
+        
+
+    "postulantes_categoria_curso_mas_interesada":0,
+
+    "total_categorias_curso":0,
+
+
     "uso_ia": False,
 
     "cantidad_conversaciones": 0,
@@ -2903,6 +4736,9 @@ columnas_base = {
 
     "modalidad_laboral":
         "Sin registro",
+
+
+    
 }
 
 
@@ -3093,7 +4929,21 @@ columnas_importantes = [
 
     "cantidad_cursos",
 
+    "categoria_curso_mas_interesada",
+
+    "postulantes_categoria_curso_mas_interesada",
+
+    "total_categorias_curso",
+
     "uso_ia",
+
+    "cantidad_quizzes",
+
+    "cantidad_respuestas_quiz",
+
+    "cantidad_resultados_quiz",
+
+    "completo_quiz",
 
     "cantidad_conversaciones",
 
@@ -3580,6 +5430,517 @@ print(
     ),
 )
 
+# ============================================================
+# CRUCE QUIZZES
+# ============================================================
+
+print("\n========== CRUCE QUIZZES ==========")
+
+# ------------------------------------------------------------
+# VALIDAR COLUMNAS
+# ------------------------------------------------------------
+
+print("Columnas userquizdatas:")
+print(list(userquizdatas.columns))
+
+print("\nColumnas quizzes:")
+print(list(quizzes.columns))
+
+print("\nColumnas quizresults:")
+print(list(quizresults.columns))
+
+
+# ------------------------------------------------------------
+# NORMALIZAR IDs
+# ------------------------------------------------------------
+
+def normalizar_id_quiz(valor):
+
+    if pd.isna(valor):
+        return None
+
+    return str(valor).strip()
+
+
+userquizdatas["_id_user"] = userquizdatas["user"].apply(
+    normalizar_id_quiz
+)
+
+userquizdatas["_id_quiz"] = userquizdatas["quiz"].apply(
+    normalizar_id_quiz
+)
+
+quizzes["_id_quiz"] = quizzes["_id"].apply(
+    normalizar_id_quiz
+)
+
+quizresults["_id_user"] = quizresults["user"].apply(
+    normalizar_id_quiz
+)
+
+quizresults["_id_quiz"] = quizresults["quiz"].apply(
+    normalizar_id_quiz
+)
+
+
+# ------------------------------------------------------------
+# MAPA DE QUIZZES
+# ------------------------------------------------------------
+
+mapa_quizzes = quizzes[
+    [
+        "_id_quiz",
+        "key",
+        "title"
+    ]
+].copy()
+
+mapa_quizzes = mapa_quizzes.rename(
+    columns={
+        "key": "quiz_key",
+        "title": "quiz_nombre"
+    }
+)
+
+print(
+    f"Quizzes encontrados: {len(mapa_quizzes)}"
+)
+
+print(
+    mapa_quizzes[
+        [
+            "_id_quiz",
+            "quiz_key",
+            "quiz_nombre"
+        ]
+    ].to_string(index=False)
+)
+
+
+# ------------------------------------------------------------
+# CRUZAR USERQUIZDATAS + QUIZZES
+# ------------------------------------------------------------
+
+quizzes_detalle = userquizdatas.merge(
+    mapa_quizzes,
+    on="_id_quiz",
+    how="left"
+)
+
+print(
+    f"\nRegistros userquizdatas: "
+    f"{len(userquizdatas)}"
+)
+
+print(
+    f"Registros después de cruzar quizzes: "
+    f"{len(quizzes_detalle)}"
+)
+
+
+# ------------------------------------------------------------
+# VALIDAR QUIZZES SIN NOMBRE
+# ------------------------------------------------------------
+
+sin_quiz = quizzes_detalle[
+    quizzes_detalle["quiz_nombre"].isna()
+]
+
+print(
+    f"Registros sin información del quiz: "
+    f"{len(sin_quiz)}"
+)
+
+
+# ------------------------------------------------------------
+# CRUZAR CON USERS
+# ------------------------------------------------------------
+
+usuarios_quiz = users[
+    [
+        "_id",
+        "email",
+        "firstName",
+        "lastName"
+    ]
+].copy()
+
+usuarios_quiz["_id_user"] = usuarios_quiz[
+    "_id"
+].apply(normalizar_id_quiz)
+
+usuarios_quiz = usuarios_quiz.drop(
+    columns=["_id"]
+)
+
+usuarios_quiz = usuarios_quiz.rename(
+    columns={
+        "email": "email_quiz",
+        "firstName": "firstName_quiz",
+        "lastName": "lastName_quiz"
+    }
+)
+
+
+quizzes_detalle = quizzes_detalle.merge(
+    usuarios_quiz,
+    on="_id_user",
+    how="left"
+)
+
+
+# ------------------------------------------------------------
+# CRUZAR RESULTADOS
+# ------------------------------------------------------------
+
+resultados_quiz = quizresults[
+    [
+        "_id_user",
+        "_id_quiz",
+        "items",
+        "report",
+        "createdAt"
+    ]
+].copy()
+
+resultados_quiz = resultados_quiz.rename(
+    columns={
+        "items": "resultado_items",
+        "report": "resultado_quiz",
+        "createdAt": "fecha_resultado_quiz"
+    }
+)
+
+
+# Un usuario puede tener resultado para un quiz.
+# Usamos left para conservar todos los registros
+# de userquizdatas.
+
+quizzes_detalle = quizzes_detalle.merge(
+    resultados_quiz,
+    on=[
+        "_id_user",
+        "_id_quiz"
+    ],
+    how="left"
+)
+
+
+# ------------------------------------------------------------
+# INDICADORES POR USUARIO
+# ------------------------------------------------------------
+
+resumen_quizzes = (
+    quizzes_detalle
+    .groupby("_id_user")
+    .agg(
+        cantidad_quizzes=(
+            "_id_quiz",
+            "nunique"
+        ),
+        cantidad_respuestas_quiz=(
+            "_id",
+            "count"
+        ),
+        cantidad_resultados_quiz=(
+            "resultado_quiz",
+            lambda x: x.notna().sum()
+        )
+    )
+    .reset_index()
+)
+
+
+# ------------------------------------------------------------
+# INDICADOR: COMPLETÓ QUIZ
+# ------------------------------------------------------------
+
+resumen_quizzes["completo_quiz"] = (
+    resumen_quizzes["cantidad_resultados_quiz"] > 0
+)
+
+
+# ------------------------------------------------------------
+# VALIDACIÓN
+# ------------------------------------------------------------
+
+print("\n========== VALIDACIÓN QUIZZES ==========")
+
+print(
+    "Registros userquizdatas:",
+    len(userquizdatas)
+)
+
+print(
+    "Usuarios con quizzes:",
+    resumen_quizzes["_id_user"].nunique()
+)
+
+print(
+    "Quizzes realizados:",
+    resumen_quizzes["cantidad_quizzes"].sum()
+)
+
+print(
+    "Usuarios con resultado:",
+    (
+        resumen_quizzes[
+            "cantidad_resultados_quiz"
+        ] > 0
+    ).sum()
+)
+
+print(
+    "Total resultados:",
+    len(quizresults)
+)
+
+
+# ------------------------------------------------------------
+# DISTRIBUCIÓN POR QUIZ
+# ------------------------------------------------------------
+
+print("\n========== DISTRIBUCIÓN POR QUIZ ==========")
+
+distribucion_quizzes = (
+    quizzes_detalle
+    .groupby(
+        [
+            "_id_quiz",
+            "quiz_key",
+            "quiz_nombre"
+        ]
+    )
+    .agg(
+        usuarios=(
+            "_id_user",
+            "nunique"
+        ),
+        respuestas=(
+            "_id",
+            "count"
+        )
+    )
+    .reset_index()
+    .sort_values(
+        "usuarios",
+        ascending=False
+    )
+)
+
+print(
+    distribucion_quizzes.to_string(
+        index=False
+    )
+)
+
+
+# ------------------------------------------------------------
+# GUARDAR DETALLE
+# ------------------------------------------------------------
+
+ruta_quizzes_detalle = (
+    "data/cache/quizzes_detalle_dashboard.csv"
+)
+
+quizzes_detalle.to_csv(
+    ruta_quizzes_detalle,
+    index=False,
+    encoding="utf-8-sig"
+)
+
+print(
+    f"\n💾 Detalle de quizzes guardado en:"
+    f"\n   {ruta_quizzes_detalle}"
+)
+
+
+# ------------------------------------------------------------
+# GUARDAR RESUMEN
+# ------------------------------------------------------------
+
+ruta_resumen_quizzes = (
+    "data/cache/resumen_quizzes_dashboard.csv"
+)
+
+resumen_quizzes.to_csv(
+    ruta_resumen_quizzes,
+    index=False,
+    encoding="utf-8-sig"
+)
+
+print(
+    f"💾 Resumen de quizzes guardado en:"
+    f"\n   {ruta_resumen_quizzes}"
+)
+
+
+print("\n========== QUIZZES TERMINADO ==========")
+
+# ============================================================
+# INCORPORAR QUIZZES AL DATASET PRINCIPAL
+# ============================================================
+
+print()
+print(
+    "========== INCORPORAR QUIZZES AL DATASET PRINCIPAL =========="
+)
+
+# ------------------------------------------------------------
+# PREPARAR RESUMEN DE QUIZZES
+# ------------------------------------------------------------
+
+if not resumen_quizzes.empty:
+
+    resumen_quizzes_merge = resumen_quizzes.copy()
+
+    resumen_quizzes_merge[
+        "_id_postulante"
+    ] = (
+        resumen_quizzes_merge[
+            "_id_user"
+        ]
+        .apply(limpiar_id)
+    )
+
+    resumen_quizzes_merge = (
+        resumen_quizzes_merge[
+            [
+                "_id_postulante",
+                "cantidad_quizzes",
+                "cantidad_respuestas_quiz",
+                "cantidad_resultados_quiz",
+                "completo_quiz",
+            ]
+        ]
+        .drop_duplicates(
+            subset=[
+                "_id_postulante"
+            ]
+        )
+    )
+
+    # --------------------------------------------------------
+    # CRUZAR CON DATASET PRINCIPAL
+    # --------------------------------------------------------
+
+    df_users_cv = df_users_cv.merge(
+        resumen_quizzes_merge,
+        on="_id_postulante",
+        how="left",
+        validate="one_to_one",
+    )
+
+else:
+
+    df_users_cv[
+        "cantidad_quizzes"
+    ] = 0
+
+    df_users_cv[
+        "cantidad_respuestas_quiz"
+    ] = 0
+
+    df_users_cv[
+        "cantidad_resultados_quiz"
+    ] = 0
+
+    df_users_cv[
+        "completo_quiz"
+    ] = False
+
+
+# ------------------------------------------------------------
+# ASEGURAR VALORES
+# ------------------------------------------------------------
+
+for columna in [
+    "cantidad_quizzes",
+    "cantidad_respuestas_quiz",
+    "cantidad_resultados_quiz",
+]:
+
+    if columna not in df_users_cv.columns:
+
+        df_users_cv[
+            columna
+        ] = 0
+
+    df_users_cv[
+        columna
+    ] = (
+        pd.to_numeric(
+            df_users_cv[
+                columna
+            ],
+            errors="coerce",
+        )
+        .fillna(0)
+        .astype(int)
+    )
+
+
+if "completo_quiz" not in df_users_cv.columns:
+
+    df_users_cv[
+        "completo_quiz"
+    ] = False
+
+
+df_users_cv[
+    "completo_quiz"
+] = (
+    df_users_cv[
+        "completo_quiz"
+    ]
+    .fillna(False)
+    .astype(bool)
+)
+
+
+# ------------------------------------------------------------
+# VALIDACIÓN
+# ------------------------------------------------------------
+
+print(
+    "Usuarios con quizzes:",
+    int(
+        (
+            df_users_cv[
+                "cantidad_quizzes"
+            ] > 0
+        ).sum()
+    ),
+)
+
+print(
+    "Total quizzes realizados:",
+    int(
+        df_users_cv[
+            "cantidad_quizzes"
+        ].sum()
+    ),
+)
+
+print(
+    "Usuarios con resultado:",
+    int(
+        (
+            df_users_cv[
+                "cantidad_resultados_quiz"
+            ] > 0
+        ).sum()
+    ),
+)
+
+print(
+    "Usuarios que completaron quiz:",
+    int(
+        df_users_cv[
+            "completo_quiz"
+        ].sum()
+    ),
+)
 
 # ============================================================
 # VALIDACIONES ANALÍTICAS
@@ -3642,7 +6003,967 @@ print(
     f" / {total}"
 )
 
+# ============================================================
+# INTERÉS EN CURSOS
+# ============================================================
 
+print("\n========== INTERÉS EN CURSOS ==========")
+
+# DataFrame vacío por defecto
+cursos_interes = pd.DataFrame()
+
+if not courseenrollments.empty:
+
+    print("Analizando courseenrollments...")
+
+    ce = courseenrollments.copy()
+
+    # --------------------------------------------------------
+    # MOSTRAR COLUMNAS
+    # --------------------------------------------------------
+
+    print("Columnas courseenrollments:")
+    print(ce.columns.tolist())
+
+    # --------------------------------------------------------
+    # BUSCAR USUARIO
+    # --------------------------------------------------------
+
+    posibles_user = [
+        "userId",
+        "user_id",
+        "userid",
+        "user",
+        "_id_user"
+    ]
+
+    columna_user = None
+
+    for col in posibles_user:
+        if col in ce.columns:
+            columna_user = col
+            break
+
+    # --------------------------------------------------------
+    # BUSCAR CURSO
+    # --------------------------------------------------------
+
+    posibles_curso = [
+        "courseId",
+        "course_id",
+        "courseid",
+        "course",
+        "_id_course"
+    ]
+
+    columna_curso = None
+
+    for col in posibles_curso:
+        if col in ce.columns:
+            columna_curso = col
+            break
+
+    print(
+        f"Columna usuario encontrada: {columna_user}"
+    )
+
+    print(
+        f"Columna curso encontrada: {columna_curso}"
+    )
+
+    # --------------------------------------------------------
+    # PROCESAR SI EXISTEN AMBAS COLUMNAS
+    # --------------------------------------------------------
+
+    if columna_user and columna_curso:
+
+        cursos_interes = ce[
+            [columna_user, columna_curso]
+        ].copy()
+
+        cursos_interes = cursos_interes.rename(
+            columns={
+                columna_user: "_id_user",
+                columna_curso: "_id_course"
+            }
+        )
+
+        # ----------------------------------------------------
+        # NORMALIZAR IDS
+        # ----------------------------------------------------
+
+        cursos_interes["_id_user"] = (
+            cursos_interes["_id_user"]
+            .astype(str)
+            .str.strip()
+        )
+
+        cursos_interes["_id_course"] = (
+            cursos_interes["_id_course"]
+            .astype(str)
+            .str.strip()
+        )
+
+        # ----------------------------------------------------
+        # ELIMINAR IDS VACÍOS
+        # ----------------------------------------------------
+
+        cursos_interes = cursos_interes[
+            (cursos_interes["_id_user"] != "") &
+            (cursos_interes["_id_course"] != "") &
+            (cursos_interes["_id_user"] != "nan") &
+            (cursos_interes["_id_course"] != "nan") &
+            (cursos_interes["_id_user"] != "None") &
+            (cursos_interes["_id_course"] != "None")
+        ].copy()
+
+        # ----------------------------------------------------
+        # CRUZAR CON COURSES
+        # ----------------------------------------------------
+
+        if not courses.empty:
+
+            cursos = courses.copy()
+
+            if "_id" in cursos.columns:
+
+                cursos["_id_course"] = (
+                    cursos["_id"]
+                    .astype(str)
+                    .str.strip()
+                )
+
+            elif "id" in cursos.columns:
+
+                cursos["_id_course"] = (
+                    cursos["id"]
+                    .astype(str)
+                    .str.strip()
+                )
+
+            else:
+
+                cursos["_id_course"] = ""
+
+            # ------------------------------------------------
+            # BUSCAR NOMBRE DEL CURSO
+            # ------------------------------------------------
+
+            posibles_nombre = [
+                "name",
+                "title",
+                "courseName",
+                "course_name",
+                "nombre",
+                "nombreCurso"
+            ]
+
+            columna_nombre = None
+
+            for col in posibles_nombre:
+
+                if col in cursos.columns:
+                    columna_nombre = col
+                    break
+
+            print(
+                f"Columna nombre curso encontrada: "
+                f"{columna_nombre}"
+            )
+
+            if columna_nombre:
+
+                cursos_nombre = cursos[
+                    [
+                        "_id_course",
+                        columna_nombre
+                    ]
+                ].copy()
+
+                cursos_nombre = cursos_nombre.rename(
+                    columns={
+                        columna_nombre: "curso"
+                    }
+                )
+
+                cursos_nombre = (
+                    cursos_nombre
+                    .drop_duplicates(
+                        subset="_id_course"
+                    )
+                )
+
+                cursos_interes = cursos_interes.merge(
+                    cursos_nombre,
+                    on="_id_course",
+                    how="left"
+                )
+
+            else:
+
+                cursos_interes["curso"] = (
+                    cursos_interes["_id_course"]
+                )
+
+            # ------------------------------------------------
+            # BUSCAR CATEGORÍA / TIPO
+            # ------------------------------------------------
+
+            posibles_categoria = [
+                "type",
+                "category",
+                "categoria",
+                "courseType",
+                "course_type"
+            ]
+
+            columna_categoria = None
+
+            for col in posibles_categoria:
+
+                if col in cursos.columns:
+                    columna_categoria = col
+                    break
+
+            print(
+                f"Columna categoría encontrada: "
+                f"{columna_categoria}"
+            )
+
+            if columna_categoria:
+
+                cursos_categoria = cursos[
+                    [
+                        "_id_course",
+                        columna_categoria
+                    ]
+                ].copy()
+
+                cursos_categoria = cursos_categoria.rename(
+                    columns={
+                        columna_categoria:
+                        "categoria_curso"
+                    }
+                )
+
+                cursos_categoria = (
+                    cursos_categoria
+                    .drop_duplicates(
+                        subset="_id_course"
+                    )
+                )
+
+                cursos_interes = cursos_interes.merge(
+                    cursos_categoria,
+                    on="_id_course",
+                    how="left"
+                )
+
+            else:
+
+                cursos_interes[
+                    "categoria_curso"
+                ] = "Sin categoría"
+
+        # ----------------------------------------------------
+        # CRUZAR CON USERS
+        # ----------------------------------------------------
+
+        if not users.empty and "_id" in users.columns:
+
+            usuarios = users.copy()
+
+            usuarios["_id_user"] = (
+                usuarios["_id"]
+                .astype(str)
+                .str.strip()
+            )
+
+            columnas_usuario = [
+                "_id_user"
+            ]
+
+            for col in [
+                "firstName",
+                "lastName",
+                "email"
+            ]:
+
+                if col in usuarios.columns:
+                    columnas_usuario.append(col)
+
+            usuarios_info = (
+                usuarios[
+                    columnas_usuario
+                ]
+                .drop_duplicates(
+                    subset="_id_user"
+                )
+            )
+
+            cursos_interes = cursos_interes.merge(
+                usuarios_info,
+                on="_id_user",
+                how="left"
+            )
+
+        # ----------------------------------------------------
+        # ELIMINAR DUPLICADOS
+        # ----------------------------------------------------
+
+        cursos_interes = (
+            cursos_interes
+            .drop_duplicates()
+            .reset_index(drop=True)
+        )
+
+        # ----------------------------------------------------
+        # MOSTRAR RESULTADOS
+        # ----------------------------------------------------
+
+        print(
+            f"Registros de interés en cursos: "
+            f"{len(cursos_interes)}"
+        )
+
+        print(
+            f"Usuarios únicos: "
+            f"{cursos_interes['_id_user'].nunique()}"
+        )
+
+        print(
+            f"Cursos únicos: "
+            f"{cursos_interes['curso'].nunique()}"
+        )
+
+        if "curso" in cursos_interes.columns:
+
+            print("\nCursos de interés:")
+
+            print(
+                cursos_interes[
+                    "curso"
+                ]
+                .value_counts()
+                .head(20)
+            )
+
+    else:
+
+        print(
+            "⚠️ No se encontraron automáticamente "
+            "las columnas user/course."
+        )
+
+else:
+
+    print(
+        "⚠️ courseenrollments está vacío."
+    )
+
+
+# ============================================================
+# GUARDAR DETALLE DE CURSOS
+# ============================================================
+
+if not cursos_interes.empty:
+
+    cursos_interes.to_csv(
+        os.path.join(
+            OUTPUT_DIR,
+            "cursos_interes_dashboard.csv"
+        ),
+        index=False,
+        encoding="utf-8-sig"
+    )
+
+    print(
+        "\n💾 Cursos de interés guardados:"
+    )
+
+    print(
+        "   data/cache/cursos_interes_dashboard.csv"
+    )
+
+else:
+
+    print(
+        "\n⚠️ No se generaron registros "
+        "de interés en cursos."
+    )
+# ============================================================
+# INCORPORANDO INTERÉS EN CURSOS AL DATASET PRINCIPAL
+# ============================================================
+
+print("\n========== INCORPORANDO INTERÉS EN CURSOS ==========")
+
+
+# ------------------------------------------------------------
+# VALIDAR QUE EXISTE EL DATAFRAME DE CURSOS
+# ------------------------------------------------------------
+
+if "cursos_interes" not in locals() or cursos_interes is None:
+
+    print("⚠️ No existe cursos_interes.")
+    print("Se crearán columnas de cursos con valores 0.")
+
+    # --------------------------------------------------------
+    # USAR EL DATAFRAME PRINCIPAL REAL
+    # --------------------------------------------------------
+
+    df_users_cv["cantidad_cursos"] = 0
+    df_users_cv["total_registros_curso"] = 0
+    df_users_cv[
+    "categoria_curso_mas_interesada"
+    ] = "Sin cursos"
+
+    
+    df_users_cv[
+    "total_categorias_curso"
+    ]  = 0
+
+
+    df_users_cv[
+    "postulantes_categoria_curso_mas_interesada"
+    ] = 0
+
+else:
+
+    cursos = cursos_interes.copy()
+
+    # --------------------------------------------------------
+    # NORMALIZAR IDS
+    # --------------------------------------------------------
+
+    cursos["_id_user"] = (
+        cursos["_id_user"]
+        .astype(str)
+        .str.strip()
+    )
+
+    df_users_cv["_id_user"] = (
+        df_users_cv["_id_postulante"]
+        .astype(str)
+        .str.strip()
+    )
+
+    # --------------------------------------------------------
+    # ASEGURAR COLUMNA DE CATEGORÍA
+    # --------------------------------------------------------
+
+    if "categoria_curso" not in cursos.columns:
+
+        if "categoria" in cursos.columns:
+
+            cursos["categoria_curso"] = (
+                cursos["categoria"]
+            )
+
+        elif "type" in cursos.columns:
+
+            cursos["categoria_curso"] = (
+                cursos["type"]
+            )
+
+        else:
+
+            cursos["categoria_curso"] = (
+                "Sin categoría"
+            )
+
+    cursos["categoria_curso"] = (
+        cursos["categoria_curso"]
+        .fillna("Sin categoría")
+        .astype(str)
+        .str.strip()
+    )
+
+    # --------------------------------------------------------
+    # 1. RESUMEN DE CURSOS POR USUARIO
+    # --------------------------------------------------------
+
+    resumen_cursos_usuario = (
+        cursos
+        .groupby("_id_user")
+        .agg(
+            cantidad_cursos=("curso", "nunique"),
+            total_registros_curso=("curso", "count"),
+            total_categorias_curso=(
+                "categoria_curso",
+                "nunique"
+            )
+        )
+        .reset_index()
+    )
+
+    # --------------------------------------------------------
+    # 2. CATEGORÍA MÁS INTERESADA POR USUARIO
+    # --------------------------------------------------------
+
+    categoria_usuario = (
+        cursos
+        .groupby(
+            [
+                "_id_user",
+                "categoria_curso"
+            ]
+        )
+        .size()
+        .reset_index(
+            name="cantidad_categoria"
+        )
+    )
+
+    categoria_usuario = (
+        categoria_usuario
+        .sort_values(
+            [
+                "_id_user",
+                "cantidad_categoria",
+                "categoria_curso"
+            ],
+            ascending=[
+                True,
+                False,
+                True
+            ]
+        )
+    )
+
+    categoria_usuario = (
+        categoria_usuario
+        .drop_duplicates(
+            subset="_id_user",
+            keep="first"
+        )
+        .rename(
+            columns={
+                "categoria_curso":
+                    "categoria_curso_mas_interesada"
+            }
+        )
+    )
+
+    # --------------------------------------------------------
+    # 3. CANTIDAD DE POSTULANTES POR CATEGORÍA
+    # --------------------------------------------------------
+
+    cantidad_postulantes_categoria = (
+        cursos
+        .groupby(
+            "categoria_curso"
+        )["_id_user"]
+        .nunique()
+        .reset_index(
+            name="postulantes_categoria"
+        )
+    )
+
+    # --------------------------------------------------------
+    # 4. UNIR CATEGORÍA + CANTIDAD DE POSTULANTES
+    # --------------------------------------------------------
+
+    categoria_usuario = categoria_usuario.merge(
+        cantidad_postulantes_categoria,
+        left_on="categoria_curso_mas_interesada",
+        right_on="categoria_curso",
+        how="left"
+    )
+
+    if "categoria_curso" in categoria_usuario.columns:
+
+        categoria_usuario = (
+            categoria_usuario
+            .drop(
+                columns=["categoria_curso"]
+            )
+        )
+
+    categoria_usuario = (
+        categoria_usuario
+        .rename(
+            columns={
+                "postulantes_categoria":
+                    "postulantes_categoria_curso_mas_interesada"
+            }
+        )
+    )
+
+    # --------------------------------------------------------
+    # 5. UNIR RESUMEN + CATEGORÍA
+    # --------------------------------------------------------
+
+    resumen_cursos_usuario = (
+        resumen_cursos_usuario
+        .merge(
+            categoria_usuario[
+                [
+                    "_id_user",
+                    "categoria_curso_mas_interesada",
+                    "postulantes_categoria_curso_mas_interesada"
+                ]
+            ],
+            on="_id_user",
+            how="left"
+        )
+    )
+
+    # --------------------------------------------------------
+    # 6. ELIMINAR COLUMNAS ANTERIORES SI EXISTEN
+    # --------------------------------------------------------
+
+    columnas_curso = [
+        "cantidad_cursos",
+        "total_registros_curso",
+        "categoria_curso_mas_interesada",
+        "total_categorias_curso",
+        "postulantes_categoria_curso_mas_interesada"
+    ]
+
+    columnas_existentes = [
+        c
+        for c in columnas_curso
+        if c in df_users_cv.columns
+    ]
+
+    if columnas_existentes:
+
+        df_users_cv = df_users_cv.drop(
+            columns=columnas_existentes
+        )
+
+    # --------------------------------------------------------
+    # 7. UNIR AL DATASET PRINCIPAL
+    # --------------------------------------------------------
+
+    df_users_cv = df_users_cv.merge(
+        resumen_cursos_usuario[
+            [
+                "_id_user",
+                "cantidad_cursos",
+                "total_registros_curso",
+                "categoria_curso_mas_interesada",
+                "total_categorias_curso",
+                "postulantes_categoria_curso_mas_interesada"
+            ]
+        ],
+        left_on="_id_postulante",
+        right_on="_id_user",
+        how="left"
+    )
+
+    # --------------------------------------------------------
+    # 8. COMPLETAR USUARIOS SIN CURSOS
+    # --------------------------------------------------------
+
+    df_users_cv["cantidad_cursos"] = (
+        pd.to_numeric(
+            df_users_cv["cantidad_cursos"],
+            errors="coerce"
+        )
+        .fillna(0)
+        .astype(int)
+    )
+
+    df_users_cv["total_registros_curso"] = (
+        pd.to_numeric(
+            df_users_cv["total_registros_curso"],
+            errors="coerce"
+        )
+        .fillna(0)
+        .astype(int)
+    )
+
+    df_users_cv["total_categorias_curso"] = (
+        pd.to_numeric(
+            df_users_cv["total_categorias_curso"],
+            errors="coerce"
+        )
+        .fillna(0)
+        .astype(int)
+    )
+
+    df_users_cv[
+        "categoria_curso_mas_interesada"
+    ] = (
+        df_users_cv[
+            "categoria_curso_mas_interesada"
+        ]
+        .fillna("Sin cursos")
+    )
+
+    df_users_cv[
+        "postulantes_categoria_curso_mas_interesada"
+    ] = (
+        pd.to_numeric(
+            df_users_cv[
+                "postulantes_categoria_curso_mas_interesada"
+            ],
+            errors="coerce"
+        )
+        .fillna(0)
+        .astype(int)
+    )
+
+    # --------------------------------------------------------
+    # 9. VALIDACIÓN
+    # --------------------------------------------------------
+
+    print(
+        "\n========== VALIDACIÓN INTERÉS EN CURSOS =========="
+    )
+
+    print(
+        "Usuarios con cursos:",
+        (
+            df_users_cv["cantidad_cursos"]> 0
+        ).sum()
+    )
+
+    print(
+        "Total matrículas:",
+        df_users_cv[
+            "total_registros_curso"
+        ].sum()
+    )
+
+    print(
+        "Categorías con interés:",
+        (
+            df_users_cv[
+                "categoria_curso_mas_interesada"
+            ] != "Sin cursos"
+        ).sum()
+    )
+
+    print(
+        "\nDistribución de categorías:"
+    )
+
+    print(
+        df_users_cv[
+            "categoria_curso_mas_interesada"
+        ]
+        .value_counts()
+    )
+
+    print(
+        "\n✅ Interés en cursos incorporado correctamente."
+    )
+
+
+# ============================================================
+# GENERAR DATASET DE INTERÉS EN CURSOS PARA EL DASHBOARD
+# ============================================================
+
+print("\n========== GENERANDO DATASET DE INTERÉS EN CURSOS ==========")
+
+
+# ------------------------------------------------------------
+# VALIDAR QUE EXISTE EL DATAFRAME DE CURSOS
+# ------------------------------------------------------------
+
+if "cursos" not in locals() or cursos is None:
+
+    print(
+        "⚠️ No existe el dataframe cursos."
+    )
+
+else:
+
+    cursos_dashboard = cursos.copy()
+
+
+    # --------------------------------------------------------
+    # VALIDAR COLUMNAS NECESARIAS
+    # --------------------------------------------------------
+
+    columnas_necesarias = [
+        "_id_user",
+        "categoria_curso"
+    ]
+
+    columnas_faltantes = [
+        columna
+        for columna in columnas_necesarias
+        if columna not in cursos_dashboard.columns
+    ]
+
+
+    if columnas_faltantes:
+
+        print(
+            "⚠️ No se puede generar el dataset "
+            "de interés en cursos."
+        )
+
+        print(
+            "Columnas faltantes:",
+            columnas_faltantes
+        )
+
+    else:
+
+        # ----------------------------------------------------
+        # SELECCIONAR SOLO LO NECESARIO
+        # ----------------------------------------------------
+
+        cursos_dashboard = cursos_dashboard[
+            [
+                "_id_user",
+                "categoria_curso"
+            ]
+        ].copy()
+
+
+        # ----------------------------------------------------
+        # RENOMBRAR ID
+        # ----------------------------------------------------
+
+        cursos_dashboard = (
+            cursos_dashboard
+            .rename(
+                columns={
+                    "_id_user":
+                        "_id_postulante"
+                }
+            )
+        )
+
+
+        # ----------------------------------------------------
+        # NORMALIZAR ID
+        # ----------------------------------------------------
+
+        cursos_dashboard["_id_postulante"] = (
+            cursos_dashboard["_id_postulante"]
+            .astype("string")
+            .str.strip()
+        )
+
+
+        # ----------------------------------------------------
+        # NORMALIZAR CATEGORÍA
+        # ----------------------------------------------------
+
+        cursos_dashboard["categoria_curso"] = (
+            cursos_dashboard["categoria_curso"]
+            .astype("string")
+            .str.strip()
+        )
+
+
+        # ----------------------------------------------------
+        # ELIMINAR REGISTROS SIN ID
+        # ----------------------------------------------------
+
+        cursos_dashboard = (
+            cursos_dashboard[
+                cursos_dashboard[
+                    "_id_postulante"
+                ].notna()
+            ]
+        )
+
+
+        # ----------------------------------------------------
+        # ELIMINAR CATEGORÍAS VACÍAS
+        # ----------------------------------------------------
+
+        cursos_dashboard = (
+            cursos_dashboard[
+                cursos_dashboard[
+                    "categoria_curso"
+                ].notna()
+            ]
+        )
+
+
+        # ----------------------------------------------------
+        # ELIMINAR DUPLICADOS
+        #
+        # Un mismo postulante puede tener varios registros
+        # en la misma categoría.
+        # ----------------------------------------------------
+
+        cursos_dashboard = (
+            cursos_dashboard
+            .drop_duplicates(
+                subset=[
+                    "_id_postulante",
+                    "categoria_curso"
+                ]
+            )
+        )
+
+
+        # ----------------------------------------------------
+        # GUARDAR CSV
+        # ----------------------------------------------------
+
+        RUTA_CURSOS_INTERES = (
+            ROOT
+            / "data"
+            / "cache"
+            / "cursos_interes_dashboard.csv"
+        )
+
+
+        cursos_dashboard.to_csv(
+            RUTA_CURSOS_INTERES,
+            index=False,
+            encoding="utf-8-sig"
+        )
+
+
+        # ----------------------------------------------------
+        # VALIDACIÓN
+        # ----------------------------------------------------
+
+        print(
+            "\n✅ Archivo generado correctamente:"
+        )
+
+        print(
+            RUTA_CURSOS_INTERES
+        )
+
+        print(
+            "\nRegistros:",
+            len(cursos_dashboard)
+        )
+
+        print(
+            "Postulantes únicos:",
+            cursos_dashboard[
+                "_id_postulante"
+            ].nunique()
+        )
+
+        print(
+            "Categorías:",
+            cursos_dashboard[
+                "categoria_curso"
+            ].nunique()
+        )
+
+        print(
+            "\nColumnas:"
+        )
+
+        print(
+            cursos_dashboard.columns.tolist()
+        )
+
+        print(
+            "\nDistribución:"
+        )
+
+        print(
+            cursos_dashboard[
+                "categoria_curso"
+            ].value_counts()
+        )
 # ============================================================
 # GUARDAR DASHBOARD
 # ============================================================

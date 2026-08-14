@@ -16,10 +16,44 @@ st.set_page_config(
 )
 
 # Espacio superior
-st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
+st.markdown(
+    "<div style='height: 15px;'></div>",
+    unsafe_allow_html=True
+)
 
-# Título
-st.title("Dashboard de Postulantes")
+
+# ============================================================
+# TÍTULO + ACTUALIZAR DATOS
+# ============================================================
+
+col_titulo, col_actualizar = st.columns(
+    [6, 1]
+)
+
+with col_titulo:
+
+    st.title(
+        "Dashboard de Postulantes"
+    )
+
+
+with col_actualizar:
+
+    # Bajar un poco el botón respecto al título
+    st.markdown(
+        "<div style='height: 20px;'></div>",
+        unsafe_allow_html=True
+    )
+
+    if st.button(
+        "🔄 Actualizar",
+        width="stretch",
+        key="btn_actualizar_datos"
+    ):
+
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.rerun()
 
 
 # ============================================================
@@ -27,19 +61,64 @@ st.title("Dashboard de Postulantes")
 # ============================================================
 
 COLORS = {
+    # ========================================================
+    # AZULES
+    # ========================================================
     "azul": "#A2B9EE",
     "celeste": "#A2DCEE",
-    "menta": "#ADEEE2",
-    "periwinkle": "#9A9CEA",
     "azul_eventos": "#7FB3D5",
+    "azul_modalidad": "#A7C7E7",
+    "azul_claro": "#B8C9F2",
+    "azul_EXclaro": "#C0CCE8",
+    "azul_medio": "#89A8E8",
+    "azul_profundo": "#7189C9",
+
+    # ========================================================
+    # VERDES Y TURQUESA
+    # ========================================================
+    "menta": "#8EE8D8",
     "verde_ia": "#9AD0C2",
     "turquesa": "#7CCCC4",
-    "lavanda": "#CDB4DB",
-    "azul_modalidad": "#A7C7E7",
+    "verde_claro": "#B9E6D9",
+    "verde_suave": "#B1DFD0",
+    "verde_salvia": "#ABD1C0",
+
+    # ========================================================
+    # MORADOS Y LAVANDA
+    # ========================================================
+    "periwinkle": "#A1A3E4",
+    "lavanda": "#CEA3E7",
+    "lila": "#D8C4E8",
+    "morado_suave": "#B8A9E8",
+    "violeta_claro": "#C4B5E0",
+
+    # ========================================================
+    # TONOS CÁLIDOS SUAVES
+    # ========================================================
+    "rosa_lavanda": "#DDB9D8",
+    "rosa_pastel": "#E8C1D3",
+    "rosa_hielo": "#EFCEDB",
+    "rosa_malva": "#E6C1DA",
+    "rosa_suave": "#E5BFD0",
+
+    "amarillo": "#F3D58A",
+    "amarillo_claro": "#F7E3A6",
+    "amarillo_suave": "#F4D99B",
+    "amarillo_pastel": "#F8E7B5",
+    "vainilla": "#F6E4B5",
+    "dorado_suave": "#F5F074",
+
+
+
+    # ========================================================
+    # TONOS NEUTROS
+    # ========================================================
     "texto": "#333333",
     "fondo_card": "#CED6E2",
     "borde": "#D9E2F0",
-    "gris": "#E9EEF5"
+    "gris": "#E9EEF5",
+    "gris_medio": "#D5DCE8",
+    "gris_claro": "#F3F5F8",
 }
 
 
@@ -117,13 +196,29 @@ def cargar_dashboard():
     return pd.read_csv(RUTA_DATA, low_memory=False)
 
 
+# ============================================================
+# CARGAR DASHBOARD PRINCIPAL
+# ============================================================
+
 df_dashboard = cargar_dashboard()
+
+
+# ============================================================
+# VALIDAR DASHBOARD
+# ============================================================
+
+if df_dashboard.empty:
+    st.warning("El archivo está vacío.")
+    st.stop()
+
 
 # ============================================================
 # CARGAR EVENTOS
 # ============================================================
 
-RUTA_EVENTOS = ROOT / "data" / "cache" / "eventos_dashboard.csv"
+RUTA_EVENTOS = (
+    ROOT / "data" / "cache" / "eventos_dashboard.csv"
+)
 
 
 @st.cache_data
@@ -137,10 +232,73 @@ def cargar_eventos():
         low_memory=False
     )
 
-if df_dashboard.empty:
-    st.warning("El archivo está vacío.")
-    st.stop()
 
+df_eventos = cargar_eventos()
+
+
+print("\n========== EVENTOS PARA DASHBOARD ==========")
+
+print(
+    "Registros:",
+    len(df_eventos)
+)
+
+print(
+    "Columnas:",
+    df_eventos.columns.tolist()
+)
+
+print(
+    df_eventos.head()
+)
+
+# ============================================================
+# INTERÉS EN CURSOS
+# ============================================================
+
+RUTA_CURSOS_INTERES = (
+    ROOT / "data" / "cache" / "cursos_interes_dashboard.csv"
+)
+
+df_cursos_interes = pd.read_csv(
+    RUTA_CURSOS_INTERES,
+    encoding="utf-8-sig"
+)
+
+# ============================================================
+# CARGAR DETALLE DE QUIZZES
+# ============================================================
+
+RUTA_QUIZZES = (
+    ROOT / "data" / "cache" / "quizzes_detalle_usuarios.csv"
+)
+
+
+@st.cache_data
+def cargar_quizzes():
+
+    if not RUTA_QUIZZES.exists():
+        return pd.DataFrame()
+
+    return pd.read_csv(
+        RUTA_QUIZZES,
+        low_memory=False
+    )
+
+
+df_quizzes = cargar_quizzes()
+
+print("\n========== QUIZZES ==========")
+
+print("Ruta:", RUTA_QUIZZES)
+
+print("Existe:", RUTA_QUIZZES.exists())
+
+print("Registros:", len(df_quizzes))
+
+print("Columnas:", df_quizzes.columns.tolist())
+
+print(df_quizzes.head())
 
 # ============================================================
 # PREPARACIÓN
@@ -160,6 +318,37 @@ if "createdAt_user" in df_dashboard.columns:
     df_dashboard["año"] = df_dashboard["createdAt_user"].dt.year
     df_dashboard["mes_num"] = df_dashboard["createdAt_user"].dt.month
     df_dashboard["mes"] = df_dashboard["mes_num"].map(MESES)
+
+# ============================================================
+# PREPARAR QUIZZES
+# ============================================================
+
+if not df_quizzes.empty:
+
+    # Normalizar ID de usuario
+   if "_id_user" in df_quizzes.columns:
+
+    df_quizzes["_id_user"] = (
+        df_quizzes["_id_user"]
+        .astype("string")
+        .str.strip()
+    )
+
+    # Normalizar campos de quiz
+    for columna in [
+        "quiz_id",
+        "quiz_key",
+        "quiz_nombre",
+        "estado"
+    ]:
+
+        if columna in df_quizzes.columns:
+
+            df_quizzes[columna] = (
+                df_quizzes[columna]
+                .astype("string")
+                .str.strip()
+            )
 
 
 # ============================================================
@@ -717,25 +906,6 @@ def crear_barra(data, categoria, valor, color):
         marker_color=color
     )
 
-    fig.update_layout(
-        height=350,
-        margin=dict(
-            l=10,
-            r=10,
-            t=10,
-            b=10
-        ),
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        showlegend=False,
-        xaxis=dict(
-            showticklabels=False,
-            showgrid=False
-        ),
-        yaxis=dict(
-            categoryorder="total ascending"
-        )
-    )
 
     return fig
 
@@ -946,6 +1116,40 @@ if (
         ).eq(area)
     ]
 
+# ============================================================
+# FILTRAR QUIZZES SEGÚN LOS FILTROS GENERALES
+# ============================================================
+
+df_quizzes_filtrado = df_quizzes.copy()
+
+if not df_quizzes_filtrado.empty:
+
+    # --------------------------------------------------------
+    # NORMALIZAR IDs
+    # --------------------------------------------------------
+
+    if "_id_user" in df_quizzes_filtrado.columns:
+
+        df_quizzes_filtrado["_id_user"] = (
+            df_quizzes_filtrado["_id_user"]
+            .astype("string")
+            .str.strip()
+        )
+
+    if "_id_postulante" in df.columns:
+
+        ids_filtrados = (
+            df["_id_postulante"]
+            .astype("string")
+            .str.strip()
+            .unique()
+        )
+
+        df_quizzes_filtrado = df_quizzes_filtrado[
+            df_quizzes_filtrado["_id_user"]
+            .isin(ids_filtrados)
+        ].copy()
+
 
 # ============================================================
 # ELIMINAR DUPLICADOS
@@ -965,6 +1169,8 @@ if "_id_postulante" in df.columns:
 
 df = df.reset_index(drop=True)
 
+
+
 # ============================================================
 # TÍTULO
 # ============================================================
@@ -981,36 +1187,166 @@ st.markdown(
 # KPIs
 # ============================================================
 
-st.markdown('<div class="section-title">Indicadores/KPIs</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="section-title">Indicadores/KPIs</div>',
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# KPIs GENERALES
+# ============================================================
 
 total = len(df)
-con_cv = contar_booleano(df, "tiene_cv")
-uso_ia = contar_booleano(df, "uso_ia")
-eventos = contar_booleano(df, "participo_evento")
-cursos = contar_booleano(df, "cantidad_cursos")
 
-cols = st.columns(5)
+con_cv = contar_booleano(
+    df,
+    "tiene_cv"
+)
+
+uso_ia = contar_booleano(
+    df,
+    "uso_ia"
+)
+
+eventos = contar_booleano(
+    df,
+    "participo_evento"
+)
+
+cursos = contar_booleano(
+    df,
+    "cantidad_cursos"
+)
+
+
+# ============================================================
+# QUIZZES
+# Aplicar los mismos filtros del dashboard
+# ============================================================
+
+quizzes_kpi = df_quizzes.copy()
+
+
+# ------------------------------------------------------------
+# FILTRO AÑO
+# ------------------------------------------------------------
+
+if año != "Todos":
+
+    ids_año = (
+        df_dashboard[
+            df_dashboard["año"].eq(int(año))
+        ]["_id_postulante"]
+        .astype("string")
+        .str.strip()
+        .dropna()
+        .unique()
+    )
+
+    quizzes_kpi = quizzes_kpi[
+        quizzes_kpi["_id_user"]
+        .astype("string")
+        .str.strip()
+        .isin(ids_año)
+    ]
+
+
+# ------------------------------------------------------------
+# FILTRO ÁREA PROFESIONAL
+# ------------------------------------------------------------
+
+if area != "Todas":
+
+    ids_area = (
+        df_dashboard[
+            df_dashboard["area_profesional"].eq(area)
+        ]["_id_postulante"]
+        .astype("string")
+        .str.strip()
+        .dropna()
+        .unique()
+    )
+
+    quizzes_kpi = quizzes_kpi[
+        quizzes_kpi["_id_user"]
+        .astype("string")
+        .str.strip()
+        .isin(ids_area)
+    ]
+
+
+# ------------------------------------------------------------
+# CONTAR USUARIOS ÚNICOS CON QUIZ
+# ------------------------------------------------------------
+
+quizzes = (
+    quizzes_kpi["_id_user"]
+    .dropna()
+    .astype("string")
+    .str.strip()
+    .nunique()
+)
+
+
+# ============================================================
+# USUARIOS ACTIVOS
+# ============================================================
+
+usuarios_activos = 0
+
+if "isActive" in df.columns:
+
+    usuarios_activos = (
+        df["isActive"]
+        .astype(str)
+        .str.strip()
+        .str.lower()
+        .isin(["true", "1"])
+        .sum()
+    )
+
+    usuarios_activos = int(
+        usuarios_activos
+    )
+
+
+# ============================================================
+# MOSTRAR KPIs
+# ============================================================
+
+cols = st.columns(7)
+
 
 datos_kpi = [
     ("👥", "Postulantes", total),
+    ("🟢", "Usuarios activos", usuarios_activos),
     ("📄", "Con CV", con_cv),
-    ("🤖", "Uso IA", uso_ia),
+    ("🤖", "Uso de Chatbot", uso_ia),
     ("🎫", "Eventos", eventos),
-    ("📚", "Cursos", cursos)
+    ("📚", "Cursos", cursos),
+    ("📝", "Quizzes", quizzes)
 ]
 
-for col, (icono, titulo, valor) in zip(cols, datos_kpi):
+
+for col, (icono, titulo, valor) in zip(
+    cols,
+    datos_kpi
+):
 
     with col:
 
-        delta = "100%" if titulo == "Postulantes" else f"{porcentaje(valor, total)}%"
+        delta = (
+            "100%"
+            if titulo == "Postulantes"
+            else f"{porcentaje(valor, total)}%"
+        )
 
         st.metric(
             f"{icono} {titulo}",
-            f"{valor:,}",
+            str(valor),
             delta
         )
-
 
 # ============================================================
 # PERFIL PROFESIONAL
@@ -1023,7 +1359,7 @@ c1, c2 = st.columns(2)
 with c1:
 
     st.markdown(
-    "<p style='font-size:16px; font-weight:600; margin-bottom:8px;'>Carreras con mayor cantidad de postulantes</p>",
+    "<p style='font-size:16px; font-weight:600; margin-bottom:8px;'>Top 10 de carreras con mayor cantidad de postulantes</p>",
     unsafe_allow_html=True
     )
 
@@ -1053,7 +1389,7 @@ with c1:
 with c2:
 
     st.markdown(
-    "<p style='font-size:16px; font-weight:600; margin-bottom:8px;'>Áreas profesionales</p>",
+    "<p style='font-size:16px; font-weight:600; margin-bottom:8px;'>Top 8 de áreas profesionales</p>",
     unsafe_allow_html=True
     )
 
@@ -1195,6 +1531,338 @@ with c4:
             use_container_width=True
         )
 
+
+# ============================================================
+# INVITACIONES - ALIADOS Y LABORAL HEROS
+# ============================================================
+
+st.markdown(
+    '<div class="section-title">Invitaciones</div>',
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# PREPARAR DATOS
+# ============================================================
+
+if (
+    "origen_invitacion" in df.columns
+    and "codigo_invitacion" in df.columns
+):
+
+    df_invitaciones = df[
+        df["origen_invitacion"].notna()
+        & df["codigo_invitacion"].notna()
+        & df["origen_invitacion"].isin([
+            "Aliados",
+            "Laboral Heros"
+        ])
+    ].copy()
+
+
+    # --------------------------------------------------------
+    # LIMPIAR TEXTOS
+    # --------------------------------------------------------
+
+    df_invitaciones["origen_invitacion"] = (
+        df_invitaciones["origen_invitacion"]
+        .astype("string")
+        .str.strip()
+    )
+
+    df_invitaciones["codigo_invitacion"] = (
+        df_invitaciones["codigo_invitacion"]
+        .astype("string")
+        .str.strip()
+    )
+
+
+    # --------------------------------------------------------
+    # FILTRO DE ORIGEN
+    # --------------------------------------------------------
+
+    if "filtro_origen_invitacion" not in st.session_state:
+
+        st.session_state["filtro_origen_invitacion"] = "Todos"
+
+
+    filtro_origen = st.selectbox(
+        "Filtrar por origen",
+        options=[
+            "Todos",
+            "Aliados",
+            "Laboral Heros"
+        ],
+        key="filtro_origen_invitacion"
+    )
+
+
+    # ========================================================
+    # APLICAR FILTRO
+    # ========================================================
+
+    if filtro_origen == "Todos":
+
+        df_invitaciones_filtrado = (
+            df_invitaciones.copy()
+        )
+
+    else:
+
+        df_invitaciones_filtrado = df_invitaciones[
+            df_invitaciones["origen_invitacion"]
+            == filtro_origen
+        ].copy()
+
+
+    # ========================================================
+    # GRÁFICOS
+    # ========================================================
+
+    g1, g2 = st.columns(2)
+
+
+    # ========================================================
+    # GRÁFICO 1
+    # POSTULANTES INVITADOS
+    # ========================================================
+
+    with g1:
+
+        st.markdown(
+            """
+            <p style='font-size:16px; font-weight:600; margin-bottom:8px;'>
+                Postulantes invitados por origen
+            </p>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+        # ----------------------------------------------------
+        # TODOS
+        # ALIADOS VS LABORAL HEROS
+        # ----------------------------------------------------
+
+        if filtro_origen == "Todos":
+
+            invitados_origen = (
+                df_invitaciones_filtrado
+                .groupby("origen_invitacion")
+                .size()
+                .reindex(
+                    [
+                        "Aliados",
+                        "Laboral Heros"
+                    ],
+                    fill_value=0
+                )
+                .reset_index(
+                    name="Postulantes"
+                )
+            )
+
+
+            fig_invitaciones = crear_barra(
+                invitados_origen,
+                "origen_invitacion",
+                "Postulantes",
+                COLORS["verde_claro"]
+            )
+
+
+            st.plotly_chart(
+                fig_invitaciones,
+                use_container_width=True,
+                key="grafico_invitaciones_origen"
+            )
+
+
+        # ----------------------------------------------------
+        # ALIADOS O LABORAL HEROS
+        # MOSTRAR CÓDIGOS
+        # ----------------------------------------------------
+
+        else:
+
+            invitados_codigo = (
+                df_invitaciones_filtrado
+                .groupby(
+                    "codigo_invitacion"
+                )
+                .size()
+                .reset_index(
+                    name="Postulantes"
+                )
+                .sort_values(
+                    "Postulantes",
+                    ascending=True
+                )
+            )
+
+
+            if not invitados_codigo.empty:
+
+                fig_invitaciones = crear_barra(
+                    invitados_codigo,
+                    "codigo_invitacion",
+                    "Postulantes",
+                    COLORS["turquesa"]
+                )
+
+
+                st.plotly_chart(
+                    fig_invitaciones,
+                    use_container_width=True,
+                    key="grafico_invitaciones_codigo"
+                )
+
+            else:
+
+                st.info(
+                    "No hay postulantes invitados "
+                    "para el origen seleccionado."
+                )
+
+
+    # ========================================================
+    # GRÁFICO 2
+    # USUARIOS ACTIVOS POR ORIGEN
+    # ========================================================
+
+    with g2:
+
+        st.markdown(
+            """
+            <p style='font-size:16px; font-weight:600; margin-bottom:8px;'>
+                Usuarios activos por origen Top 5
+            </p>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+        # ----------------------------------------------------
+        # SOLO USUARIOS ACTIVOS
+        # ----------------------------------------------------
+
+        df_activos = df_invitaciones_filtrado[
+            df_invitaciones_filtrado["isActive"]
+            .astype(str)
+            .str.lower()
+            .isin([
+                "true",
+                "1"
+            ])
+        ].copy()
+
+
+        # ----------------------------------------------------
+        # TODOS
+        # ACTIVOS DE ALIADOS VS LABORAL HEROS
+        # ----------------------------------------------------
+
+        if filtro_origen == "Todos":
+
+            activos_origen = (
+                df_activos
+                .groupby(
+                    "origen_invitacion"
+                )
+                .size()
+                .reindex(
+                    [
+                        "Aliados",
+                        "Laboral Heros"
+                    ],
+                    fill_value=0
+                )
+                .reset_index(
+                    name="Activos"
+                )
+            )
+
+
+            fig_activos = crear_donut(
+                activos_origen,
+                "origen_invitacion",
+                "Activos",
+                [
+                    COLORS["verde_salvia"],
+                    COLORS["azul_EXclaro"]
+                ]
+            )
+
+
+            st.plotly_chart(
+                fig_activos,
+                use_container_width=True,
+                key="grafico_activos_invitaciones"
+            )
+
+
+        # ----------------------------------------------------
+        # ALIADOS O LABORAL HEROS
+        # TOP 5 CÓDIGOS ACTIVOS
+        # ----------------------------------------------------
+
+        else:
+
+            activos_codigo = (
+                df_activos
+                .groupby(
+                    "codigo_invitacion"
+                )
+                .size()
+                .reset_index(
+                    name="Activos"
+                )
+                .sort_values(
+                    "Activos",
+                    ascending=False
+                )
+                .head(5)
+            )
+
+
+            if not activos_codigo.empty:
+
+                fig_activos = crear_donut(
+                    activos_codigo,
+                    "codigo_invitacion",
+                    "Activos",
+                    [
+                        COLORS["menta"],
+                        COLORS["turquesa"],
+                        COLORS["azul_modalidad"],
+                        COLORS["periwinkle"],
+                        COLORS["celeste"]
+                    ]
+                )
+
+
+                st.plotly_chart(
+                    fig_activos,
+                    use_container_width=True,
+                    key="grafico_activos_invitaciones"
+                )
+
+            else:
+
+                st.info(
+                    "No hay usuarios activos "
+                    "para el origen seleccionado."
+                )
+
+
+else:
+
+    st.info(
+        "No hay información disponible sobre invitaciones."
+    )
+
+    
 # ============================================================
 # USO DE LA PLATAFORMA
 # ============================================================
@@ -1206,13 +1874,13 @@ u1, u2 = st.columns(2)
 with u1:
 
     st.markdown(
-    "<p style='font-size:16px; font-weight:600; margin-bottom:8px;'>Uso de IA</p>",
+    "<p style='font-size:16px; font-weight:600; margin-bottom:8px;'>Uso de Chatbot</p>",
     unsafe_allow_html=True
     )
 
 
     ia_df = pd.DataFrame({
-        "Estado": ["Utilizó IA", "No utilizó IA"],
+        "Estado": ["Utilizó Chatbot", "No utilizó Chatbot"],
         "Postulantes": [uso_ia, max(total - uso_ia, 0)]
     })
 
@@ -1235,111 +1903,831 @@ with u2:
 
 
     ev_df = pd.DataFrame({
-        "Estado": ["Participó", "No participó"],
-        "Postulantes": [eventos, max(total - eventos, 0)]
-    })
+    "Estado": ["Participó", "No participó"],
+    "Postulantes": [eventos, max(total - eventos, 0)]
+     })
 
     st.plotly_chart(
-        crear_donut(
-            ev_df,
-            "Estado",
-            "Postulantes",
-            [COLORS["azul_eventos"], COLORS["gris"]]
-        ),
-        use_container_width=True,
-        key="donut_participacion_eventos"
-    )
+    crear_donut(
+        ev_df,
+        "Estado",
+        "Postulantes",
+        [
+            COLORS["azul_eventos"],
+            COLORS["gris"]
+        ]
+    ),
+    use_container_width=True
+)
 
 
 
+
+
+# ============================================================
+# NORMALIZAR ID
+# ============================================================
+
+df_cursos_interes["_id_postulante"] = (
+    df_cursos_interes["_id_postulante"]
+    .astype("string")
+    .str.strip()
+)
+
+
+# ============================================================
+# NORMALIZAR CATEGORÍA
+# ============================================================
+
+df_cursos_interes["categoria_curso"] = (
+    df_cursos_interes["categoria_curso"]
+    .astype("string")
+    .str.strip()
+)
+
+
+# ============================================================
+# TRAER AÑO Y ÁREA PROFESIONAL
+# DESDE EL DATASET PRINCIPAL
+# ============================================================
+
+columnas_filtros = [
+    "_id_postulante",
+    "año",
+    "area_profesional"
+]
+
+df_cursos_interes = df_cursos_interes.merge(
+    df_dashboard[columnas_filtros].drop_duplicates(
+        subset="_id_postulante"
+    ),
+    on="_id_postulante",
+    how="left"
+)
+
+
+# ============================================================
+# VALIDACIÓN
+# ============================================================
+
+print("\n========== CURSOS PARA DASHBOARD ==========")
+
+print(
+    "Registros:",
+    len(df_cursos_interes)
+)
+
+print(
+    "Postulantes únicos:",
+    df_cursos_interes["_id_postulante"].nunique()
+)
+
+print(
+    "Columnas:",
+    df_cursos_interes.columns.tolist()
+)
+
+print(
+    "\nAños:",
+    df_cursos_interes["año"].value_counts(dropna=False)
+)
+
+print(
+    "\nÁreas profesionales:"
+)
+
+print(
+    df_cursos_interes["area_profesional"]
+    .value_counts(dropna=False)
+)
+
+# ============================================================
+# EVENTOS Y CURSOS
+# ============================================================
+
+col_eventos, col_cursos = st.columns(2)
 
 
 # ============================================================
 # PARTICIPACIÓN SEGÚN TIPO DE EVENTO
 # ============================================================
 
-st.markdown(
-    '<div class="section-title">Participación según tipo de evento</div>',
-    unsafe_allow_html=True
-)
+with col_eventos:
 
-df_eventos = cargar_eventos()
-
-if not df_eventos.empty and "tipo_evento" in df_eventos.columns:
-
-    # --------------------------------------------------------
-    # FILTRAR EVENTOS SEGÚN LOS POSTULANTES FILTRADOS
-    # --------------------------------------------------------
-
-    if "_id_postulante" in df.columns and "_id_postulante" in df_eventos.columns:
-
-        ids_filtrados = (
-            df["_id_postulante"]
-            .dropna()
-            .astype(str)
-            .unique()
-        )
-
-        eventos_filtrados = df_eventos[
-            df_eventos["_id_postulante"]
-            .astype(str)
-            .isin(ids_filtrados)
-        ].copy()
-
-    else:
-
-        eventos_filtrados = df_eventos.copy()
-
-    # --------------------------------------------------------
-    # CONTAR TIPOS DE EVENTO
-    # --------------------------------------------------------
-
-    eventos_tipo = (
-        limpiar_categoria(
-            eventos_filtrados["tipo_evento"]
-        )
-        .dropna()
-        .value_counts()
-        .reset_index()
+    st.markdown(
+        """
+        <p style="
+            font-size:16px;
+            font-weight:600;
+            margin-bottom:8px;
+        ">
+            Participación según tipo de evento
+        </p>
+        """,
+        unsafe_allow_html=True
     )
 
-    eventos_tipo.columns = [
-        "Tipo de evento",
-        "Participaciones"
-    ]
+    if not df_eventos.empty:
 
-    # --------------------------------------------------------
-    # GRÁFICO
-    # --------------------------------------------------------
-
-    if not eventos_tipo.empty:
-
-        fig_eventos = crear_barra(
-            eventos_tipo,
-            "Tipo de evento",
-            "Participaciones",
-            COLORS["azul_eventos"]
+        # Mostrar temporalmente las columnas para comprobar
+        # la estructura del archivo
+        print(
+            "\nCOLUMNAS EVENTOS:",
+            df_eventos.columns.tolist()
         )
 
-        st.plotly_chart(
-            fig_eventos,
-            use_container_width=True,
-            key="grafico_tipo_evento"
+        # ----------------------------------------------------
+        # BUSCAR COLUMNA DEL TIPO DE EVENTO
+        # ----------------------------------------------------
+
+        posibles_columnas_evento = [
+            "tipo_evento",
+            "tipoEvento",
+            "event_type",
+            "eventType",
+            "nombre_evento",
+            "nombreEvento",
+            "evento",
+            "event_name",
+            "eventName"
+        ]
+
+        columna_tipo_evento = next(
+            (
+                columna
+                for columna in posibles_columnas_evento
+                if columna in df_eventos.columns
+            ),
+            None
         )
+
+        if columna_tipo_evento is not None:
+
+            eventos_grafico = df_eventos.copy()
+
+            eventos_grafico[columna_tipo_evento] = (
+                eventos_grafico[columna_tipo_evento]
+                .astype("string")
+                .str.strip()
+            )
+
+            eventos_grafico = eventos_grafico[
+                eventos_grafico[columna_tipo_evento].notna()
+                & (
+                    eventos_grafico[columna_tipo_evento] != ""
+                )
+            ]
+
+            eventos_grafico = (
+                eventos_grafico
+                .groupby(columna_tipo_evento)
+                .size()
+                .reset_index(name="Postulantes")
+                .sort_values(
+                    "Postulantes",
+                    ascending=False
+                )
+            )
+
+            eventos_grafico.columns = [
+                "Tipo de evento",
+                "Postulantes"
+            ]
+
+            if not eventos_grafico.empty:
+
+                st.plotly_chart(
+                    crear_barra(
+                        eventos_grafico,
+                        "Tipo de evento",
+                        "Postulantes",
+                        COLORS["rosa_malva"]
+                    ),
+                    use_container_width=True,
+                    key="grafico_tipo_evento"
+                )
+
+            else:
+
+                st.info(
+                    "No hay participación registrada por tipo de evento."
+                )
+
+        else:
+
+            st.warning(
+                "No se encontró la columna del tipo de evento."
+            )
 
     else:
 
         st.info(
-            "No hay participación en eventos para los filtros seleccionados."
+            "No hay información disponible sobre eventos."
         )
+
+
+# ============================================================
+# INTERÉS EN CURSOS
+# ============================================================
+
+with col_cursos:
+
+    st.markdown(
+        """
+        <p style="
+            font-size:16px;
+            font-weight:600;
+            margin-bottom:8px;
+        ">
+            Interés en cursos
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # --------------------------------------------------------
+    # COPIA PARA FILTROS
+    # --------------------------------------------------------
+
+    cursos_filtrados = df_cursos_interes.copy()
+
+    # --------------------------------------------------------
+    # FILTRO AÑO
+    # --------------------------------------------------------
+
+    if año != "Todos":
+
+        cursos_filtrados = cursos_filtrados[
+            cursos_filtrados["año"].eq(int(año))
+        ]
+
+    # --------------------------------------------------------
+    # FILTRO ÁREA PROFESIONAL
+    # --------------------------------------------------------
+
+    if area != "Todas":
+
+        cursos_filtrados = cursos_filtrados[
+            cursos_filtrados["area_profesional"].eq(area)
+        ]
+
+    # --------------------------------------------------------
+    # GRÁFICO POR CATEGORÍA
+    # --------------------------------------------------------
+
+    if not cursos_filtrados.empty:
+
+        categorias_grafico = (
+            cursos_filtrados[
+                cursos_filtrados["categoria_curso"].notna()
+            ]
+            .groupby("categoria_curso")["_id_postulante"]
+            .nunique()
+            .reset_index(name="Postulantes")
+            .sort_values(
+                "Postulantes",
+                ascending=True
+            )
+            .tail(10)
+        )
+
+        categorias_grafico.columns = [
+            "Categoría",
+            "Postulantes"
+        ]
+
+        if not categorias_grafico.empty:
+
+            st.plotly_chart(
+                crear_barra(
+                    categorias_grafico,
+                    "Categoría",
+                    "Postulantes",
+                    COLORS["verde_ia"]
+                ),
+                use_container_width=True,
+                key="grafico_categorias_cursos"
+            )
+
+        else:
+
+            st.info(
+                "No hay información disponible sobre categorías de cursos."
+            )
+
+    else:
+
+        st.info(
+            "No hay información disponible sobre cursos."
+        )
+
+
+# ============================================================
+# QUIZZES
+# ============================================================
+
+st.markdown(
+    '<div class="section-title">Quizzes</div>',
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# VALIDAR DATA DE QUIZZES
+# ============================================================
+
+if df_quizzes.empty:
+
+    st.info(
+        "No hay información disponible sobre quizzes."
+    )
 
 else:
 
-    st.info(
-        "No hay información disponible sobre los tipos de eventos."
-    )
+    # ========================================================
+    # COLUMNAS NECESARIAS
+    # ========================================================
+
+    columnas_necesarias = [
+        "_id_user",
+        "quiz_id",
+        "quiz_key",
+        "quiz_nombre",
+        "estado"
+    ]
+
+    columnas_faltantes = [
+        columna
+        for columna in columnas_necesarias
+        if columna not in df_quizzes.columns
+    ]
 
 
+    if columnas_faltantes:
+
+        st.warning(
+            "Faltan columnas en quizzes_detalle_usuarios.csv: "
+            + ", ".join(columnas_faltantes)
+        )
+
+    else:
+
+        # ====================================================
+        # LIMPIAR DATOS
+        # ====================================================
+
+        for columna in columnas_necesarias:
+
+            df_quizzes[columna] = (
+                df_quizzes[columna]
+                .astype("string")
+                .str.strip()
+            )
+
+
+        # ====================================================
+        # NORMALIZAR ESTADOS
+        # ====================================================
+
+        df_quizzes["estado"] = (
+            df_quizzes["estado"]
+            .str.lower()
+            .str.strip()
+            .replace({
+                "iniciado": "Iniciado",
+                "en proceso": "En proceso",
+                "completado": "Completado"
+            })
+        )
+
+
+        # ====================================================
+        # ELIMINAR REGISTROS SIN USUARIO
+        # ====================================================
+
+        df_quizzes = df_quizzes[
+            df_quizzes["_id_user"].notna()
+            & (df_quizzes["_id_user"] != "")
+        ].copy()
+
+
+        # ====================================================
+        # FILTROS PRINCIPALES
+        # ====================================================
+
+        quizzes_filtrados = df_quizzes.copy()
+
+
+        # ====================================================
+        # FILTRO POR AÑO
+        # ====================================================
+
+        if año != "Todos":
+
+            ids_año = (
+                df_dashboard[
+                    df_dashboard["año"].eq(int(año))
+                ]["_id_postulante"]
+                .astype("string")
+                .str.strip()
+                .unique()
+            )
+
+            quizzes_filtrados = quizzes_filtrados[
+                quizzes_filtrados["_id_user"].isin(ids_año)
+            ]
+
+
+        # ====================================================
+        # FILTRO POR ÁREA PROFESIONAL
+        # ====================================================
+
+        if area != "Todas":
+
+            ids_area = (
+                df_dashboard[
+                    df_dashboard["area_profesional"].eq(area)
+                ]["_id_postulante"]
+                .astype("string")
+                .str.strip()
+                .unique()
+            )
+
+            quizzes_filtrados = quizzes_filtrados[
+                quizzes_filtrados["_id_user"].isin(ids_area)
+            ]
+
+
+        # ====================================================
+        # CONTENEDORES
+        # ====================================================
+
+        izquierda, derecha = st.columns(
+            [1.15, 1]
+        )
+
+
+        # ====================================================
+        # IZQUIERDA
+        # COMPLETACIÓN POR QUIZ
+        # ====================================================
+
+        with izquierda:
+
+            st.markdown(
+                """
+                <p style="
+                    font-size:16px;
+                    font-weight:600;
+                    margin-bottom:12px;
+                ">
+                    Completación por quiz
+                </p>
+                """,
+                unsafe_allow_html=True
+            )
+
+
+            if quizzes_filtrados.empty:
+
+                st.info(
+                    "No hay quizzes para los filtros seleccionados."
+                )
+
+            else:
+
+                # ============================================
+                # RESUMEN POR QUIZ
+                # ============================================
+
+                resumen_quizzes = (
+                    quizzes_filtrados
+                    .groupby(
+                        [
+                            "quiz_id",
+                            "quiz_key",
+                            "quiz_nombre"
+                        ],
+                        dropna=False
+                    )
+                    .agg(
+                        Iniciaron=(
+                            "_id_user",
+                            "nunique"
+                        ),
+                        Completaron=(
+                            "_id_user",
+                            lambda x: (
+                                quizzes_filtrados
+                                .loc[
+                                    x.index,
+                                    "estado"
+                                ]
+                                .eq("Completado")
+                                .sum()
+                            )
+                        )
+                    )
+                    .reset_index()
+                )
+
+
+                # ============================================
+                # PORCENTAJE
+                # ============================================
+
+                resumen_quizzes["Completación"] = (
+                    resumen_quizzes["Completaron"]
+                    .div(
+                        resumen_quizzes["Iniciaron"]
+                    )
+                    .fillna(0)
+                    .mul(100)
+                    .round(1)
+                )
+
+
+                # ============================================
+                # ORDENAR
+                # ============================================
+
+                resumen_quizzes = (
+                    resumen_quizzes
+                    .sort_values(
+                        "Completación",
+                        ascending=True
+                    )
+                )
+
+
+                # ============================================
+                # GRÁFICO
+                # ============================================
+
+                fig_quizzes = px.bar(
+                    resumen_quizzes,
+                    x="Completación",
+                    y="quiz_nombre",
+                    orientation="h",
+                    text="Completación"
+                )
+
+
+                fig_quizzes.update_traces(
+                    marker_color=COLORS["dorado_suave"],
+                    marker_line_width=0,
+                    texttemplate="%{text:.1f}%",
+                    textposition="outside",
+                    hovertemplate=(
+                        "<b>%{y}</b><br>"
+                        "Completación: %{x:.1f}%"
+                        "<extra></extra>"
+                    )
+                )
+
+
+                fig_quizzes.update_layout(
+                    height=max(
+                        300,
+                        len(resumen_quizzes) * 60
+                    ),
+                    margin=dict(
+                        l=10,
+                        r=55,
+                        t=10,
+                        b=10
+                    ),
+                    plot_bgcolor="white",
+                    paper_bgcolor="white",
+                    showlegend=False,
+
+                    xaxis=dict(
+                        range=[
+                            0,
+                            max(
+                                100,
+                                resumen_quizzes[
+                                    "Completación"
+                                ].max() + 10
+                            )
+                        ],
+                        ticksuffix="%",
+                        showgrid=False,
+                        zeroline=False,
+                        showline=False,
+                        title=None
+                    ),
+
+                    yaxis=dict(
+                        title=None,
+                        showgrid=False,
+                        zeroline=False,
+                        showline=False
+                    )
+                )
+
+
+                st.plotly_chart(
+                    fig_quizzes,
+                    width="stretch",
+                    key="grafico_completacion_quizzes"
+                )
+
+
+        # ====================================================
+        # DERECHA
+        # DETALLE DEL QUIZ
+        # ====================================================
+
+        with derecha:
+
+            st.markdown(
+                """
+                <p style="
+                    font-size:16px;
+                    font-weight:600;
+                    margin-bottom:12px;
+                ">
+                    Detalle del quiz
+                </p>
+                """,
+                unsafe_allow_html=True
+            )
+
+
+            # =================================================
+            # LISTA DE QUIZZES
+            # =================================================
+
+            opciones_quiz = (
+                quizzes_filtrados[
+                    [
+                        "quiz_id",
+                        "quiz_nombre"
+                    ]
+                ]
+                .drop_duplicates()
+                .dropna(subset=["quiz_nombre"])
+                .sort_values("quiz_nombre")
+            )
+
+
+            if opciones_quiz.empty:
+
+                st.info(
+                    "No hay quizzes para los filtros seleccionados."
+                )
+
+            else:
+
+                opciones_nombres = (
+                    opciones_quiz[
+                        "quiz_nombre"
+                    ]
+                    .astype(str)
+                    .tolist()
+                )
+
+
+                # =============================================
+                # TODOS
+                # =============================================
+
+                opciones_nombres = (
+                    ["Todos"]
+                    + opciones_nombres
+                )
+
+
+                quiz_seleccionado = st.selectbox(
+                    "Seleccionar quiz",
+                    options=opciones_nombres,
+                    key="quiz_seleccionado"
+                )
+
+
+                # =================================================
+                # FILTRAR QUIZ SELECCIONADO
+                # =================================================
+
+                if quiz_seleccionado == "Todos":
+
+                    detalle_quiz = (
+                        quizzes_filtrados
+                        .copy()
+                    )
+
+                else:
+
+                    detalle_quiz = (
+                        quizzes_filtrados[
+                            quizzes_filtrados[
+                                "quiz_nombre"
+                            ]
+                            == quiz_seleccionado
+                        ]
+                        .copy()
+                    )
+
+
+                # =================================================
+                # ELIMINAR DUPLICADOS
+                # =================================================
+
+                detalle_quiz = (
+                    detalle_quiz
+                    .drop_duplicates(
+                        subset=[
+                            "_id_user",
+                            "quiz_id"
+                        ],
+                        keep="last"
+                    )
+                )
+
+
+                # =================================================
+                # CONTADORES
+                # =================================================
+
+                iniciaron = (
+                    detalle_quiz[
+                        "_id_user"
+                    ]
+                    .nunique()
+                )
+
+
+                en_proceso = (
+                    detalle_quiz[
+                        detalle_quiz["estado"]
+                        == "En proceso"
+                    ]["_id_user"]
+                    .nunique()
+                )
+
+
+                completaron = (
+                    detalle_quiz[
+                        detalle_quiz["estado"]
+                        == "Completado"
+                    ]["_id_user"]
+                    .nunique()
+                )
+
+
+                # =================================================
+                # COMPLETACIÓN
+                # =================================================
+
+                completacion = porcentaje(
+                    completaron,
+                    iniciaron
+                )
+
+
+                # =================================================
+                # MÉTRICAS PRINCIPALES
+                # =================================================
+
+                m1, m2, m3 = st.columns(3)
+
+
+                with m1:
+
+                    st.metric(
+                        "🚀 Iniciaron",
+                        f"{iniciaron:,}"
+                    )
+
+
+                with m2:
+
+                    st.metric(
+                        "⏳ En proceso",
+                        f"{en_proceso:,}"
+                    )
+
+
+                with m3:
+
+                    st.metric(
+                        "✅ Completaron",
+                        f"{completaron:,}"
+                    )
+
+
+                # =================================================
+                # COMPLETACIÓN
+                # =================================================
+
+                st.metric(
+                    "📊 Completación",
+                    f"{completacion:.1f}%"
+                )
+
+
+                
 
 # ============================================================
 # EVOLUCIÓN

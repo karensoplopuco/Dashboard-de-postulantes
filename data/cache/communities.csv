@@ -1,0 +1,10 @@
+﻿_id,name,type,industry,location,responsible,phone,email,code,counter,createdAt,updatedAt,__v
+69d5e8cd90674a07214907a3,Test,Comunidad juvenil,"['Liderazgo', 'Deportes', 'Tecnología', 'webon']",Peru,Test,987908807,juan@gmail.com,TEST10,5,2026-04-08 05:34:05.158,2026-06-04 17:17:27.483,0
+69d5f2b5c3fd0364b8a2d26b,Test,Área de empleabilidad,"['Mentoría', 'Orientación', 'Prácticas']",Test,Juan,987087912,juan@gmail.com,MME116,0,2026-04-08 06:16:21.352,2026-04-08 06:16:21.352,0
+69e77f1d572db17d70175b0d,LEAD USIL,Comunidad juvenil,"['Liderazgo', 'Voluntariado', 'Tecnología']",Perú/Lima,Daniela Chero,+51984377266,lead.usil.team@gmail.com,UZ983,1,2026-04-21 13:43:57.610,2026-04-21 13:53:23.502,0
+69f9219e82108a4091497c15,STEM FUTURAS,Empresas-ONGs,"['Tecnología', 'Innovación', 'Liderazgo']",Lima / Perú,Carla Torre,913701113,stemfuturas@gmail.com,RY640,0,2026-05-04 22:45:50.220,2026-05-04 22:45:50.220,0
+6a09dd0c2c3b3b8149d2fbd1,LEAD UNMSM,Comunidad juvenil,"['Tecnología', 'Voluntariado']",Perú/Lima,Krishna Allende,+51951174823,lead.unmsm@gmail.com,LEADUNMSM,29,2026-05-17 15:21:48.559,2026-06-06 18:06:50.088,0
+6a44812f5df9e27919ba0cd3,ILA,Comunidad juvenil,[],Auto-generado,Antonio Salazar,904314633,antonio.salazar2@unmsm.edu.pe,ILA79,0,2026-07-01 02:53:35.033,2026-07-01 02:53:35.033,0
+6a46c6e673a31534fe3cd82b,WIE UPC,Comunidad juvenil,[],Auto-generado,Sharon Valeriano,907611787,shavalerianoblas@crackthecode.la,WIEUPC,0,2026-07-02 20:15:34.590,2026-07-02 20:15:34.590,0
+6a4866d6f1580cc0ab9582cd,Centro Cultural de Telecomunicaciones ,Comunidad juvenil,[],Auto-generado,Alexandra Cornejo,946540939,cct.fiee@uni.edu.pe,CCTUNI,0,2026-07-04 01:50:14.977,2026-07-04 01:50:14.977,0
+6a5e4375f7f694adf44c3f40,Developer Student Club UNI,Comunidad juvenil,[],Auto-generado,Alexandra Cornejo,946540939,gdsc@uni.edu.pe,DSCUNI,0,2026-07-20 15:49:09.258,2026-07-20 15:49:09.258,0

@@ -1,0 +1,4 @@
+﻿_id,key,title,description,questions,createdAt,updatedAt,__v
+66cbfe3ecb6abc716b509f0f,self-knowledge,Test de autoconocimiento,"Test para descrubrir habiliadades blandas, logros y objetivos profesionales y pitch personal","[ObjectId('68612e8f3019ac638a3df69f'), ObjectId('68612eda3019ac638a3df6a1'), ObjectId('68612f053019ac638a3df6a3'), ObjectId('68612f133019ac638a3df6a5')]",2024-08-26 04:02:06.409,2024-08-26 04:02:06.409,0
+68608b9fe2ab83fad047c008,motivator_test,Motivaciones Personales,Comparte lo que te motiva para ayudarte a conectar con las empresas ideales para ti,[ObjectId('66cbfd8fc5f2c9087447acfd')],2025-06-29 00:41:03.106,2025-06-29 01:06:11.898,0
+6867488928e1694428437676,perks_test,¿Qué beneficios te motivan?,Comparte lo que te inspira a dar lo mejor de ti. Así conectamos tu perfil con empresas que valoran esa motivación,[ObjectId('6867446cd6926f1388638bd9')],2025-07-04 03:18:05.856,2025-07-04 03:18:05.856,0
