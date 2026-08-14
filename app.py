@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from pathlib import Path
-
+import os
 
 # ============================================================
 # CONFIGURACIÓN
@@ -1531,6 +1531,42 @@ with c4:
             use_container_width=True
         )
 
+# ============================================================
+# CARGAR CÓDIGOS DE INVITACIONES
+# ============================================================
+
+ruta_codigos_invitacion = os.path.join(
+    "data",
+    "codigos_laboral_heros_aliados.csv"
+)
+
+if os.path.exists(ruta_codigos_invitacion):
+
+    df_codigos_invitacion = pd.read_csv(
+        ruta_codigos_invitacion
+    )
+
+    df_codigos_invitacion["codigo"] = (
+        df_codigos_invitacion["codigo"]
+        .astype("string")
+        .str.strip()
+    )
+
+    df_codigos_invitacion["origen"] = (
+        df_codigos_invitacion["origen"]
+        .astype("string")
+        .str.strip()
+    )
+
+else:
+
+    df_codigos_invitacion = pd.DataFrame(
+        columns=[
+            "codigo",
+            "origen",
+            "counter"
+        ]
+    )
 
 # ============================================================
 # INVITACIONES - ALIADOS Y LABORAL HEROS
