@@ -61,9 +61,11 @@ with col_actualizar:
 # ============================================================
 
 COLORS = {
+
     # ========================================================
     # AZULES
     # ========================================================
+
     "azul": "#A2B9EE",
     "celeste": "#A2DCEE",
     "azul_eventos": "#7FB3D5",
@@ -73,9 +75,18 @@ COLORS = {
     "azul_medio": "#89A8E8",
     "azul_profundo": "#7189C9",
 
+    # NUEVOS AZULES
+    "azul_grafico_carreras": "#66c7d1",
+    "azul_grafico_invitaciones": "#3d8290",
+    "azul_grafico_quizzes": "#004567",
+    "azul_evolucion": "#323f83",
+    "azul_chatbot": "#70afe2",
+    "azul_secundario": "#a7bddc",
+
     # ========================================================
     # VERDES Y TURQUESA
     # ========================================================
+
     "menta": "#8EE8D8",
     "verde_ia": "#9AD0C2",
     "turquesa": "#7CCCC4",
@@ -83,23 +94,37 @@ COLORS = {
     "verde_suave": "#B1DFD0",
     "verde_salvia": "#ABD1C0",
 
+    # NUEVOS VERDES
+    "verde_experiencia": "#a6c263",
+    "verde_activos": "#bad29a",
+    "verde_eventos": "#4ed5a8",
+    "verde_cursos": "#cbeba3",
+
     # ========================================================
     # MORADOS Y LAVANDA
     # ========================================================
+
     "periwinkle": "#A1A3E4",
     "lavanda": "#CEA3E7",
     "lila": "#D8C4E8",
     "morado_suave": "#B8A9E8",
     "violeta_claro": "#C4B5E0",
 
+    # NUEVO MORADO
+    "morado_practicas": "#7030a0",
+
     # ========================================================
     # TONOS CÁLIDOS SUAVES
     # ========================================================
+
     "rosa_lavanda": "#DDB9D8",
     "rosa_pastel": "#E8C1D3",
     "rosa_hielo": "#EFCEDB",
     "rosa_malva": "#E6C1DA",
     "rosa_suave": "#E5BFD0",
+
+    # NUEVO ROSA
+    "rosa_eventos": "#e174b1",
 
     "amarillo": "#F3D58A",
     "amarillo_claro": "#F7E3A6",
@@ -108,11 +133,13 @@ COLORS = {
     "vainilla": "#F6E4B5",
     "dorado_suave": "#F5F074",
 
-
+    # NUEVO AMARILLO
+    "amarillo_areas": "#ffde59",
 
     # ========================================================
     # TONOS NEUTROS
     # ========================================================
+
     "texto": "#333333",
     "fondo_card": "#CED6E2",
     "borde": "#D9E2F0",
@@ -170,10 +197,6 @@ html, body, [class*="css"] {
     margin-bottom: 10px;
 }
 
-[data-testid="stSidebar"] {
-    background-color: #F7F9FC;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -193,7 +216,10 @@ def cargar_dashboard():
         st.error("No se encontró el archivo postulantes_dashboard.csv")
         st.stop()
 
-    return pd.read_csv(RUTA_DATA, low_memory=False)
+    return pd.read_csv(
+        RUTA_DATA,
+        low_memory=True
+    )
 
 
 # ============================================================
@@ -973,7 +999,33 @@ if "carrera_principal" in df_dashboard.columns:
         .apply(normalizar_carrera)
     )
 
+# ============================================================
+# COLOR DE FONDO DEL SIDEBAR
+# ============================================================
 
+st.markdown("""
+<style>
+
+[data-testid="stSidebar"] {
+    background-color: #082e47;
+}
+
+/* Textos del sidebar */
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] label {
+    color: white !important;
+}
+
+/* Botón Limpiar filtros */
+[data-testid="stSidebar"] button,
+[data-testid="stSidebar"] button p,
+[data-testid="stSidebar"] button span {
+    color: black !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
 # ============================================================
 # SIDEBAR - FILTROS
 # ============================================================
@@ -1188,7 +1240,7 @@ st.markdown(
 # ============================================================
 
 st.markdown(
-    '<div class="section-title">Indicadores/KPIs</div>',
+    '<div class="section-title">KPIs</div>',
     unsafe_allow_html=True
 )
 
@@ -1381,7 +1433,7 @@ with c1:
                 carreras,
                 "Carrera",
                 "Postulantes",
-                COLORS["celeste"]
+                COLORS["azul_grafico_carreras"]
             ),
             use_container_width=True
         )
@@ -1411,7 +1463,7 @@ with c2:
                 areas_df,
                 "Área",
                 "Postulantes",
-                COLORS["azul"]
+                COLORS["amarillo_areas"]
             ),
             use_container_width=True
         )
@@ -1474,7 +1526,7 @@ with c3:
             experiencia_df,
             "Rango",
             "Postulantes",
-            COLORS["periwinkle"]
+            COLORS["verde_experiencia"]
         )
 
         st.plotly_chart(
@@ -1523,7 +1575,7 @@ with c4:
             practicas_df,
             "Rango",
             "Postulantes",
-            COLORS["menta"]
+            COLORS["morado_practicas"]
         )
 
         st.plotly_chart(
@@ -1704,7 +1756,7 @@ if (
                 invitados_origen,
                 "origen_invitacion",
                 "Postulantes",
-                COLORS["verde_claro"]
+                COLORS["azul_grafico_invitaciones"]
             )
 
 
@@ -1825,8 +1877,8 @@ if (
                 "origen_invitacion",
                 "Activos",
                 [
-                    COLORS["verde_salvia"],
-                    COLORS["azul_EXclaro"]
+                    COLORS["azul_grafico_quizzes"],
+                    COLORS["verde_activos"]
                 ]
             )
 
@@ -1925,7 +1977,7 @@ with u1:
             ia_df,
             "Estado",
             "Postulantes",
-            [COLORS["verde_ia"], COLORS["gris"]]
+            [COLORS["azul_chatbot"], COLORS["gris_medio"]]
         ),
         use_container_width=True
     )
@@ -1949,8 +2001,8 @@ with u2:
         "Estado",
         "Postulantes",
         [
-            COLORS["azul_eventos"],
-            COLORS["gris"]
+            COLORS["verde_eventos"],
+            COLORS["gris_medio"]
         ]
     ),
     use_container_width=True
@@ -2137,7 +2189,7 @@ with col_eventos:
                         eventos_grafico,
                         "Tipo de evento",
                         "Postulantes",
-                        COLORS["rosa_malva"]
+                        COLORS["rosa_eventos"]
                     ),
                     use_container_width=True,
                     key="grafico_tipo_evento"
@@ -2239,7 +2291,7 @@ with col_cursos:
                     categorias_grafico,
                     "Categoría",
                     "Postulantes",
-                    COLORS["verde_ia"]
+                    COLORS["verde_cursos"]
                 ),
                 use_container_width=True,
                 key="grafico_categorias_cursos"
@@ -2510,7 +2562,7 @@ else:
 
 
                 fig_quizzes.update_traces(
-                    marker_color=COLORS["dorado_suave"],
+                    marker_color=COLORS["azul_grafico_quizzes"],
                     marker_line_width=0,
                     texttemplate="%{text:.1f}%",
                     textposition="outside",
@@ -2789,7 +2841,7 @@ if "createdAt_user" in df.columns and df["createdAt_user"].notna().any():
         registros,
         x="Mes",
         y="Postulantes",
-        color_discrete_sequence=[COLORS["periwinkle"]]
+        color_discrete_sequence=[COLORS["azul_evolucion"]]
     )
 
     fig.update_layout(
