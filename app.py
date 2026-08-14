@@ -23,6 +23,31 @@ st.markdown(
 
 
 # ============================================================
+# ESTILO BOTÓN ACTUALIZAR
+# ============================================================
+
+st.markdown("""
+<style>
+
+div.stButton > button[kind="secondary"] {
+    background-color: #F1F3F5 !important;
+    color: #495057 !important;
+    border: 1px solid #D9DDE1 !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+}
+
+div.stButton > button[kind="secondary"]:hover {
+    background-color: #E9ECEF !important;
+    border-color: #C9CED3 !important;
+    color: #343A40 !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
 # TÍTULO + ACTUALIZAR DATOS
 # ============================================================
 
@@ -30,12 +55,21 @@ col_titulo, col_actualizar = st.columns(
     [6, 1]
 )
 
+
+# ------------------------------------------------------------
+# TÍTULO
+# ------------------------------------------------------------
+
 with col_titulo:
 
     st.title(
         "Dashboard de Postulantes"
     )
 
+
+# ------------------------------------------------------------
+# BOTÓN ACTUALIZAR
+# ------------------------------------------------------------
 
 with col_actualizar:
 
@@ -74,6 +108,14 @@ COLORS = {
     "azul_EXclaro": "#C0CCE8",
     "azul_medio": "#89A8E8",
     "azul_profundo": "#7189C9",
+    "hk": "#3d8290",
+    "xd":"#021b49",
+    "xf":"#024277",
+    "xg":"#0086b7",
+    "xk":"#93c4d6",
+    "xc":"#d1e2e8",
+
+
 
     # NUEVOS AZULES
     "azul_grafico_carreras": "#66c7d1",
@@ -1796,7 +1838,7 @@ if (
                     invitados_codigo,
                     "codigo_invitacion",
                     "Postulantes",
-                    COLORS["turquesa"]
+                    COLORS["hk"]
                 )
 
 
@@ -1921,11 +1963,11 @@ if (
                     "codigo_invitacion",
                     "Activos",
                     [
-                        COLORS["menta"],
-                        COLORS["turquesa"],
-                        COLORS["azul_modalidad"],
-                        COLORS["periwinkle"],
-                        COLORS["celeste"]
+                        COLORS["xd"],
+                        COLORS["xf"],
+                        COLORS["xg"],
+                        COLORS["xk"],
+                        COLORS["xc"]
                     ]
                 )
 
