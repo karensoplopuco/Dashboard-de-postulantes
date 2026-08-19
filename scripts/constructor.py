@@ -11,7 +11,10 @@ import unicodedata
 import numpy as np
 import pandas as pd
 
-from app import ROOT
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+
 from scripts.conexion import db
 
 
@@ -1029,14 +1032,18 @@ else:
         "\n⚠️ No existen registros de cursos_interes."
     )
 # ============================================================
-# CÓDIGOS DE ALIADOS Y LABORAL HEROS
+# CÓDIGOS ALIADOS / LABORAL HEROS / CORE TEAM
 # ============================================================
 
 print()
 print(
-    "========== CÓDIGOS ALIADOS / LABORAL HEROS =========="
+    "========== CÓDIGOS ALIADOS / LABORAL HEROS / CORE TEAM =========="
 )
 
+
+# ============================================================
+# NORMALIZAR CÓDIGO
+# ============================================================
 
 def normalizar_codigo(valor):
 
@@ -1059,142 +1066,188 @@ def normalizar_codigo(valor):
     )
 
 
-# ------------------------------------------------------------
-# PREPARAR CÓDIGOS DE COMMUNITIES
-# ------------------------------------------------------------
+# ============================================================
+# VALIDAR COLUMNAS
+# ============================================================
 
-codigos_aliados = set()
+if "code" not in communities.columns:
 
-if not communities.empty:
-
-    columna_code = buscar_columna(
-        communities,
-        [
-            "code",
-            "Code",
-            "CODE",
-        ],
-    )
-
-    if columna_code:
-
-        codigos_aliados = set(
-            communities[
-                columna_code
-            ]
-            .apply(normalizar_codigo)
-            .loc[
-                lambda s: s != ""
-            ]
-            .unique()
-        )
-
-        print(
-            f"Códigos Aliados encontrados: "
-            f"{len(codigos_aliados)}"
-        )
-
-    else:
-
-        print(
-            "⚠️ communities no contiene "
-            "la columna code."
-        )
-
-else:
-
-    print(
-        "⚠️ communities está vacío."
+    raise ValueError(
+        "❌ La colección communities no contiene "
+        "la columna 'code'."
     )
 
 
-# ------------------------------------------------------------
-# PREPARAR USERS
-# ------------------------------------------------------------
+if "usedInvitationCode" not in users.columns:
 
-columna_codigo_user = buscar_columna(
-    users,
-    [
-        "usedInvitationCode",
-        "used_invitation_code",
-    ],
-)
-
-if columna_codigo_user:
-
-    usuarios_codigos = users.copy()
-
-    usuarios_codigos[
-        "_codigo_normalizado"
-    ] = (
-        usuarios_codigos[
-            columna_codigo_user
-        ]
-        .apply(normalizar_codigo)
-    )
-
-else:
-
-    usuarios_codigos = users.copy()
-
-    usuarios_codigos[
-        "_codigo_normalizado"
-    ] = ""
-
-    print(
-        "⚠️ users no contiene "
-        "usedInvitationCode."
+    raise ValueError(
+        "❌ La colección users no contiene "
+        "'usedInvitationCode'."
     )
 
 
-# ------------------------------------------------------------
-# CLASIFICAR CÓDIGOS UTILIZADOS
-# ------------------------------------------------------------
+# ============================================================
+# NORMALIZAR CÓDIGOS DE USERS
+# ============================================================
 
-usuarios_con_codigo = (
-    usuarios_codigos[
-        usuarios_codigos[
-            "_codigo_normalizado"
-        ] != ""
+users[
+    "_codigo_invitacion_normalizado"
+] = (
+    users[
+        "usedInvitationCode"
     ]
-    .copy()
-)
-
-
-usuarios_con_codigo[
-    "_origen_codigo"
-] = np.where(
-    usuarios_con_codigo[
-        "_codigo_normalizado"
-    ].isin(
-        codigos_aliados
-    ),
-    "Aliados",
-    "Laboral Heros",
+    .apply(normalizar_codigo)
 )
 
 
 # ============================================================
-# DATASET DE CÓDIGOS
+# NORMALIZAR CÓDIGOS DE COMMUNITIES
+# ============================================================
+
+communities[
+    "_codigo_aliado_normalizado"
+] = (
+    communities[
+        "code"
+    ]
+    .apply(normalizar_codigo)
+)
+
+
+# ============================================================
+# CÓDIGOS DE ALIADOS
+# ============================================================
+
+codigos_aliados = set(
+    communities.loc[
+        communities[
+            "_codigo_aliado_normalizado"
+        ] != "",
+        "_codigo_aliado_normalizado"
+    ]
+    .unique()
+)
+
+
+# ============================================================
+# CÓDIGOS DE CORE TEAM
+# ============================================================
+
+codigos_core_team = {
+    normalizar_codigo("AH7408"),
+    normalizar_codigo("359491"),
+    normalizar_codigo("LA8486"),
+    normalizar_codigo("SL9775"),
+    normalizar_codigo("EN5956"),
+}
+
+
+codigos_core_team = {
+    codigo
+    for codigo in codigos_core_team
+    if codigo != ""
+}
+
+
+print(
+    f"Códigos Core Team: "
+    f"{len(codigos_core_team)}"
+)
+
+
+print(
+    f"Códigos Aliados encontrados: "
+    f"{len(codigos_aliados)}"
+)
+
+
+# ============================================================
+# USUARIOS CON CÓDIGO
+# ============================================================
+
+usuarios_con_codigo = users[
+    users[
+        "_codigo_invitacion_normalizado"
+    ] != ""
+].copy()
+
+
+# ============================================================
+# CÓDIGOS UTILIZADOS POR USERS
+# ============================================================
+
+codigos_users = set(
+    usuarios_con_codigo[
+        "_codigo_invitacion_normalizado"
+    ].unique()
+)
+
+
+# ============================================================
+# CLASIFICAR CÓDIGOS
+# ============================================================
+
+codigos_aliados_usados = (
+    codigos_users
+    .intersection(
+        codigos_aliados
+    )
+)
+
+
+# Todo código utilizado que no sea
+# Aliado ni Core Team será Laboral Heros.
+
+codigos_laboral_heros = (
+    codigos_users
+    - codigos_aliados
+    - codigos_core_team
+)
+
+
+print(
+    f"Códigos Aliados utilizados: "
+    f"{len(codigos_aliados_usados)}"
+)
+
+
+print(
+    f"Códigos Laboral Heros: "
+    f"{len(codigos_laboral_heros)}"
+)
+
+
+# ============================================================
+# CONTEO DE USUARIOS POR CÓDIGO
+# ============================================================
+
+conteo_usuarios_codigo = (
+    usuarios_con_codigo
+    .groupby(
+        "_codigo_invitacion_normalizado"
+    )
+    .size()
+    .reset_index(
+        name="counter"
+    )
+)
+
+
+# ============================================================
+# CREAR TABLA GENERAL DE CÓDIGOS
 # ============================================================
 
 codigos_laboral_heros_aliados = (
     usuarios_con_codigo
     .groupby(
-        [
-            "_codigo_normalizado",
-            "_origen_codigo",
-        ],
+        "_codigo_invitacion_normalizado",
         as_index=False,
     )
     .size()
     .rename(
         columns={
-            "_codigo_normalizado":
+            "_codigo_invitacion_normalizado":
                 "codigo",
-
-            "_origen_codigo":
-                "origen",
 
             "size":
                 "counter",
@@ -1203,18 +1256,134 @@ codigos_laboral_heros_aliados = (
 )
 
 
-# Ordenar para facilitar lectura
+# ============================================================
+# CLASIFICAR ORIGEN
+# ============================================================
+
+codigos_laboral_heros_aliados[
+    "origen"
+] = (
+    codigos_laboral_heros_aliados[
+        "codigo"
+    ]
+    .apply(
+        lambda codigo:
+            "Core Team"
+            if codigo in codigos_core_team
+            else (
+                "Aliados"
+                if codigo in codigos_aliados
+                else "Laboral Heros"
+            )
+    )
+)
+
+
+# ============================================================
+# RECUPERAR CÓDIGO ORIGINAL DE COMMUNITIES
+# ============================================================
+
+codigos_originales = (
+    communities.loc[
+        communities[
+            "_codigo_aliado_normalizado"
+        ] != "",
+        [
+            "_codigo_aliado_normalizado",
+            "code",
+        ],
+    ]
+    .drop_duplicates(
+        subset=[
+            "_codigo_aliado_normalizado"
+        ]
+    )
+)
+
+
+# ============================================================
+# RECUPERAR CÓDIGO ORIGINAL DE ALIADOS
+# ============================================================
+
+codigos_laboral_heros_aliados = (
+    codigos_laboral_heros_aliados
+    .merge(
+        codigos_originales,
+        left_on="codigo",
+        right_on="_codigo_aliado_normalizado",
+        how="left",
+    )
+)
+
+
+codigos_laboral_heros_aliados[
+    "codigo"
+] = (
+    codigos_laboral_heros_aliados[
+        "code"
+    ]
+    .combine_first(
+        codigos_laboral_heros_aliados[
+            "codigo"
+        ]
+    )
+)
+
+
+# ============================================================
+# LIMPIAR COLUMNAS
+# ============================================================
+
+codigos_laboral_heros_aliados = (
+    codigos_laboral_heros_aliados[
+        [
+            "codigo",
+            "origen",
+            "counter",
+        ]
+    ]
+)
+
+
+# ============================================================
+# ORDENAR
+# ============================================================
+
+orden_origen = {
+    "Aliados": 0,
+    "Core Team": 1,
+    "Laboral Heros": 2,
+}
+
+
+codigos_laboral_heros_aliados[
+    "_orden"
+] = (
+    codigos_laboral_heros_aliados[
+        "origen"
+    ]
+    .map(
+        orden_origen
+    )
+)
+
+
 codigos_laboral_heros_aliados = (
     codigos_laboral_heros_aliados
     .sort_values(
         [
-            "origen",
+            "_orden",
             "counter",
         ],
         ascending=[
             True,
             False,
         ],
+    )
+    .drop(
+        columns=[
+            "_orden"
+        ]
     )
     .reset_index(
         drop=True
@@ -1223,21 +1392,66 @@ codigos_laboral_heros_aliados = (
 
 
 # ============================================================
-# USUARIOS INVITADOS POR ALIADOS
+# CREAR DATAFRAMES DE INVITADOS
 # ============================================================
 
-usuarios_invitados_aliados = (
+# IMPORTANTE:
+# Estos son DataFrames de TRABAJO.
+# No los transformamos todavía.
+
+usuarios_invitados_aliados_raw = (
     usuarios_con_codigo[
         usuarios_con_codigo[
-            "_origen_codigo"
-        ] == "Aliados"
+            "_codigo_invitacion_normalizado"
+        ].isin(
+            codigos_aliados
+        )
     ]
     .copy()
 )
 
 
+usuarios_invitados_laboral_heros_raw = (
+    usuarios_con_codigo[
+        usuarios_con_codigo[
+            "_codigo_invitacion_normalizado"
+        ].isin(
+            codigos_laboral_heros
+        )
+    ]
+    .copy()
+)
+
+
+usuarios_invitados_core_team_raw = (
+    usuarios_con_codigo[
+        usuarios_con_codigo[
+            "_codigo_invitacion_normalizado"
+        ].isin(
+            codigos_core_team
+        )
+    ]
+    .copy()
+)
+
+print("ALIADOS")
+print(usuarios_invitados_aliados_raw.columns.tolist())
+print(usuarios_invitados_aliados_raw["isActive"].value_counts(dropna=False))
+
+print("\nLABORAL HEROS")
+print(usuarios_invitados_laboral_heros_raw.columns.tolist())
+print(usuarios_invitados_laboral_heros_raw["isActive"].value_counts(dropna=False))
+
+print("\nCORE TEAM")
+print(usuarios_invitados_core_team_raw.columns.tolist())
+print(usuarios_invitados_core_team_raw["isActive"].value_counts(dropna=False))
+
+# ============================================================
+# BUSCAR NOMBRES
+# ============================================================
+
 columna_first = buscar_columna(
-    usuarios_invitados_aliados,
+    usuarios_con_codigo,
     [
         "firstName",
         "firstname",
@@ -1245,8 +1459,9 @@ columna_first = buscar_columna(
     ],
 )
 
+
 columna_last = buscar_columna(
-    usuarios_invitados_aliados,
+    usuarios_con_codigo,
     [
         "lastName",
         "lastname",
@@ -1255,134 +1470,151 @@ columna_last = buscar_columna(
 )
 
 
-if columna_first:
+# ============================================================
+# PREPARAR USUARIOS INVITADOS
+# ============================================================
 
-    usuarios_invitados_aliados[
-        "firstName"
-    ] = usuarios_invitados_aliados[
-        columna_first
-    ]
+def preparar_usuarios_invitados(
+    df_invitados
+):
 
-else:
-
-    usuarios_invitados_aliados[
-        "firstName"
-    ] = np.nan
+    df_invitados = df_invitados.copy()
 
 
-if columna_last:
+    # --------------------------------------------------------
+    # FIRST NAME
+    # --------------------------------------------------------
 
-    usuarios_invitados_aliados[
-        "lastName"
-    ] = usuarios_invitados_aliados[
-        columna_last
-    ]
+    if columna_first:
 
-else:
+        df_invitados[
+            "firstName"
+        ] = df_invitados[
+            columna_first
+        ]
 
-    usuarios_invitados_aliados[
-        "lastName"
-    ] = np.nan
+    else:
 
-
-if "isActive" not in usuarios_invitados_aliados.columns:
-
-    usuarios_invitados_aliados[
-        "isActive"
-    ] = False
+        df_invitados[
+            "firstName"
+        ] = np.nan
 
 
-usuarios_invitados_aliados = (
-    usuarios_invitados_aliados[
+    # --------------------------------------------------------
+    # LAST NAME
+    # --------------------------------------------------------
+
+    if columna_last:
+
+        df_invitados[
+            "lastName"
+        ] = df_invitados[
+            columna_last
+        ]
+
+    else:
+
+        df_invitados[
+            "lastName"
+        ] = np.nan
+
+
+    # --------------------------------------------------------
+    # IS ACTIVE
+    # --------------------------------------------------------
+
+    if "isActive" not in df_invitados.columns:
+
+        df_invitados[
+            "isActive"
+        ] = False
+
+
+    # --------------------------------------------------------
+    # ASEGURAR COLUMNA DE CÓDIGO
+    # --------------------------------------------------------
+
+    if (
+        "_codigo_invitacion_normalizado"
+        not in df_invitados.columns
+    ):
+
+        df_invitados[
+            "_codigo_invitacion_normalizado"
+        ] = ""
+
+
+    # --------------------------------------------------------
+    # SELECCIONAR COLUMNAS
+    # --------------------------------------------------------
+
+    resultado = df_invitados[
         [
             "_id",
             "firstName",
             "lastName",
-            "_codigo_normalizado",
+            "_codigo_invitacion_normalizado",
             "isActive",
         ]
-    ]
-    .rename(
+    ].copy()
+
+
+    # --------------------------------------------------------
+    # RENOMBRAR
+    # --------------------------------------------------------
+
+    resultado = resultado.rename(
         columns={
             "_id":
                 "usuario_id",
 
-            "_codigo_normalizado":
-                "codigo_aliado",
+            "_codigo_invitacion_normalizado":
+                "codigo_invitacion",
         }
+    )
+
+
+    # --------------------------------------------------------
+    # ELIMINAR DUPLICADOS
+    # --------------------------------------------------------
+
+    resultado = (
+        resultado
+        .drop_duplicates(
+            subset=[
+                "usuario_id"
+            ]
+        )
+        .reset_index(
+            drop=True
+        )
+    )
+
+
+    return resultado
+
+
+# ============================================================
+# CREAR DATASETS FINALES
+# ============================================================
+
+usuarios_invitados_aliados = (
+    preparar_usuarios_invitados(
+        usuarios_invitados_aliados_raw
     )
 )
 
 
-# ============================================================
-# USUARIOS INVITADOS POR LABORAL HEROS
-# ============================================================
-
 usuarios_invitados_laboral_heros = (
-    usuarios_con_codigo[
-        usuarios_con_codigo[
-            "_origen_codigo"
-        ] == "Laboral Heros"
-    ]
-    .copy()
+    preparar_usuarios_invitados(
+        usuarios_invitados_laboral_heros_raw
+    )
 )
 
 
-if columna_first:
-
-    usuarios_invitados_laboral_heros[
-        "firstName"
-    ] = usuarios_invitados_laboral_heros[
-        columna_first
-    ]
-
-else:
-
-    usuarios_invitados_laboral_heros[
-        "firstName"
-    ] = np.nan
-
-
-if columna_last:
-
-    usuarios_invitados_laboral_heros[
-        "lastName"
-    ] = usuarios_invitados_laboral_heros[
-        columna_last
-    ]
-
-else:
-
-    usuarios_invitados_laboral_heros[
-        "lastName"
-    ] = np.nan
-
-
-if "isActive" not in usuarios_invitados_laboral_heros.columns:
-
-    usuarios_invitados_laboral_heros[
-        "isActive"
-    ] = False
-
-
-usuarios_invitados_laboral_heros = (
-    usuarios_invitados_laboral_heros[
-        [
-            "_id",
-            "firstName",
-            "lastName",
-            "_codigo_normalizado",
-            "isActive",
-        ]
-    ]
-    .rename(
-        columns={
-            "_id":
-                "usuario_id",
-
-            "_codigo_normalizado":
-                "codigo_LaboralHeros",
-        }
+usuarios_invitados_core_team = (
+    preparar_usuarios_invitados(
+        usuarios_invitados_core_team_raw
     )
 )
 
@@ -1396,34 +1628,63 @@ print(
     "========== VALIDACIÓN CÓDIGOS =========="
 )
 
+
 print(
     "Usuarios con código:",
-    len(usuarios_con_codigo),
+    len(
+        usuarios_con_codigo
+    ),
 )
+
 
 print(
     "Usuarios invitados por Aliados:",
-    len(usuarios_invitados_aliados),
+    len(
+        usuarios_invitados_aliados
+    ),
 )
+
 
 print(
     "Usuarios invitados por Laboral Heros:",
-    len(usuarios_invitados_laboral_heros),
+    len(
+        usuarios_invitados_laboral_heros
+    ),
 )
+
+
+print(
+    "Usuarios invitados por Core Team:",
+    len(
+        usuarios_invitados_core_team
+    ),
+)
+
 
 print(
     "Códigos únicos:",
-    len(codigos_laboral_heros_aliados),
+    len(
+        codigos_laboral_heros_aliados
+    ),
 )
+
 
 print()
 print(
-    codigos_laboral_heros_aliados
+    "Distribución:"
 )
 
 
+print(
+    codigos_laboral_heros_aliados[
+        "origen"
+    ].value_counts()
+)
+
+
+
 # ============================================================
-# GUARDAR DATASETS DE CÓDIGOS
+# GUARDAR CACHE
 # ============================================================
 
 ruta_codigos = os.path.join(
@@ -1431,14 +1692,22 @@ ruta_codigos = os.path.join(
     "codigos_laboral_heros_aliados.csv",
 )
 
+
 ruta_usuarios_aliados = os.path.join(
     OUTPUT_DIR,
     "usuarios_invitados_aliados.csv",
 )
 
+
 ruta_usuarios_laboral_heros = os.path.join(
     OUTPUT_DIR,
     "usuarios_invitados_laboral_heros.csv",
+)
+
+
+ruta_usuarios_core_team = os.path.join(
+    OUTPUT_DIR,
+    "usuarios_invitados_core_team.csv",
 )
 
 
@@ -1463,23 +1732,41 @@ usuarios_invitados_laboral_heros.to_csv(
 )
 
 
+usuarios_invitados_core_team.to_csv(
+    ruta_usuarios_core_team,
+    index=False,
+    encoding="utf-8-sig",
+)
+
+
 print()
 print(
-    "💾 Códigos guardados:"
+    "💾 Caches de invitaciones guardados:"
 )
+
 
 print(
-    ruta_codigos
+    "   ",
+    ruta_codigos,
 )
+
 
 print(
-    ruta_usuarios_aliados
+    "   ",
+    ruta_usuarios_aliados,
 )
+
 
 print(
-    ruta_usuarios_laboral_heros
+    "   ",
+    ruta_usuarios_laboral_heros,
 )
 
+
+print(
+    "   ",
+    ruta_usuarios_core_team,
+)
 # ============================================================
 # VALIDACIÓN DE COLECCIONES
 # ============================================================
@@ -1634,6 +1921,112 @@ df_users_cv["_id_postulante"] = (
     df_users_cv["_id"]
     .apply(limpiar_id)
 )
+
+# ============================================================
+# INCORPORAR ORIGEN DE INVITACIÓN AL DATASET PRINCIPAL
+# ============================================================
+
+print()
+print(
+    "========== ORIGEN DE INVITACIÓN =========="
+)
+
+
+# ------------------------------------------------------------
+# ASEGURAR ID NORMALIZADO EN USERS
+# ------------------------------------------------------------
+
+usuarios_origen = users[
+    [
+        "_id",
+        "_codigo_invitacion_normalizado"
+    ]
+].copy()
+
+
+usuarios_origen["_id_postulante"] = (
+    usuarios_origen["_id"]
+    .apply(limpiar_id)
+)
+
+
+# ------------------------------------------------------------
+# CLASIFICAR ORIGEN
+# ------------------------------------------------------------
+
+usuarios_origen[
+    "origen_invitacion"
+] = (
+    usuarios_origen[
+        "_codigo_invitacion_normalizado"
+    ]
+    .apply(
+        lambda codigo:
+            "Sin código"
+            if codigo == ""
+            else (
+                "Core Team"
+                if codigo in codigos_core_team
+                else (
+                    "Aliados"
+                    if codigo in codigos_aliados
+                    else "Laboral Heros"
+                )
+            )
+    )
+)
+
+
+# ------------------------------------------------------------
+# ELIMINAR COLUMNAS QUE NO NECESITAMOS
+# ------------------------------------------------------------
+
+usuarios_origen = usuarios_origen[
+    [
+        "_id_postulante",
+        "origen_invitacion"
+    ]
+].copy()
+
+
+# ------------------------------------------------------------
+# ELIMINAR POSIBLES COLUMNAS ANTERIORES
+# ------------------------------------------------------------
+
+if "origen_invitacion" in df_users_cv.columns:
+
+    df_users_cv = df_users_cv.drop(
+        columns=[
+            "origen_invitacion"
+        ]
+    )
+
+
+# ------------------------------------------------------------
+# INCORPORAR AL DATASET PRINCIPAL
+# ------------------------------------------------------------
+
+df_users_cv = df_users_cv.merge(
+    usuarios_origen,
+    on="_id_postulante",
+    how="left",
+    validate="one_to_one"
+)
+
+
+# ------------------------------------------------------------
+# ASEGURAR VALORES
+# ------------------------------------------------------------
+
+df_users_cv[
+    "origen_invitacion"
+] = (
+    df_users_cv[
+        "origen_invitacion"
+    ]
+    .fillna("Sin código")
+)
+
 
 
 # ============================================================
@@ -3879,7 +4272,7 @@ else:
 
 # ============================================================
 # CÓDIGOS DE INVITACIÓN
-# ALIADOS + LABORAL HEROS
+# ALIADOS + LABORAL HEROS + CORE TEAM
 # ============================================================
 
 print()
@@ -3887,6 +4280,10 @@ print(
     "========== CRUCE CÓDIGOS DE INVITACIÓN =========="
 )
 
+
+# ============================================================
+# NORMALIZAR CÓDIGO
+# ============================================================
 
 def normalizar_codigo(valor):
 
@@ -3910,34 +4307,49 @@ def normalizar_codigo(valor):
 
 
 # ============================================================
-# VALIDAR COMMUNITIES
+# VALIDAR COLUMNAS
 # ============================================================
 
 if "code" not in communities.columns:
 
     raise ValueError(
-        "❌ La colección communities no contiene la columna 'code'."
+        "❌ La colección communities no contiene "
+        "la columna 'code'."
     )
 
 
 if "usedInvitationCode" not in users.columns:
 
     raise ValueError(
-        "❌ La colección users no contiene 'usedInvitationCode'."
+        "❌ La colección users no contiene "
+        "'usedInvitationCode'."
     )
 
 
 # ============================================================
-# NORMALIZAR CÓDIGOS
+# NORMALIZAR CÓDIGOS DE USERS
 # ============================================================
 
-users["_codigo_invitacion_normalizado"] = (
-    users["usedInvitationCode"]
+users[
+    "_codigo_invitacion_normalizado"
+] = (
+    users[
+        "usedInvitationCode"
+    ]
     .apply(normalizar_codigo)
 )
 
-communities["_codigo_aliado_normalizado"] = (
-    communities["code"]
+
+# ============================================================
+# NORMALIZAR CÓDIGOS DE COMMUNITIES
+# ============================================================
+
+communities[
+    "_codigo_aliado_normalizado"
+] = (
+    communities[
+        "code"
+    ]
     .apply(normalizar_codigo)
 )
 
@@ -3958,10 +4370,32 @@ codigos_aliados = set(
 
 
 # ============================================================
-# CÓDIGOS UTILIZADOS POR USERS
+# CÓDIGOS DE CORE TEAM
 # ============================================================
 
-users_con_codigo = users[
+codigos_core_team = {
+    normalizar_codigo("AH7408"),
+    normalizar_codigo("359491"),
+    normalizar_codigo("LA8486"),
+    normalizar_codigo("SL9775"),
+    normalizar_codigo("EN5956"),
+}
+
+
+# Eliminar valores vacíos por seguridad
+
+codigos_core_team = {
+    codigo
+    for codigo in codigos_core_team
+    if codigo != ""
+}
+
+
+# ============================================================
+# USUARIOS CON CÓDIGO
+# ============================================================
+
+usuarios_con_codigo = users[
     users[
         "_codigo_invitacion_normalizado"
     ] != ""
@@ -3969,7 +4403,7 @@ users_con_codigo = users[
 
 
 codigos_users = set(
-    users_con_codigo[
+    usuarios_con_codigo[
         "_codigo_invitacion_normalizado"
     ]
     .unique()
@@ -3988,9 +4422,13 @@ codigos_aliados_usados = (
 )
 
 
+# Todo código utilizado que no sea
+# Core Team ni Aliado será Laboral Heros.
+
 codigos_laboral_heros = (
     codigos_users
     - codigos_aliados
+    - codigos_core_team
 )
 
 
@@ -3999,15 +4437,24 @@ print(
     f"{len(codigos_aliados)}"
 )
 
+
 print(
     f"👤 Códigos utilizados por users: "
     f"{len(codigos_users)}"
 )
 
+
 print(
     f"✅ Códigos de Aliados utilizados: "
     f"{len(codigos_aliados_usados)}"
 )
+
+
+print(
+    f"👥 Códigos Core Team: "
+    f"{len(codigos_core_team)}"
+)
+
 
 print(
     f"🦸 Códigos Laboral Heros: "
@@ -4016,11 +4463,11 @@ print(
 
 
 # ============================================================
-# TABLA DE CÓDIGOS
+# CONTEO DE USUARIOS POR CÓDIGO
 # ============================================================
 
 conteo_usuarios_codigo = (
-    users_con_codigo
+    usuarios_con_codigo
     .groupby(
         "_codigo_invitacion_normalizado"
     )
@@ -4030,35 +4477,73 @@ conteo_usuarios_codigo = (
     )
 )
 
+# ============================================================
+# CÓDIGOS UTILIZADOS POR USERS
+# ============================================================
+
+users_con_codigo = users[
+    users[
+        "_codigo_invitacion_normalizado"
+    ] != ""
+].copy()
+
+
+codigos_users = set(
+    users_con_codigo[
+        "_codigo_invitacion_normalizado"
+    ]
+    .unique()
+)
 
 # ============================================================
-# ALIADOS
+# CREAR TABLA GENERAL DE CÓDIGOS
 # ============================================================
 
-df_aliados = pd.DataFrame(
-    {
-        "codigo_normalizado":
-            list(codigos_aliados)
-    }
+codigos_laboral_heros_aliados = (
+    usuarios_con_codigo
+    .groupby(
+        "_codigo_invitacion_normalizado",
+        as_index=False,
+    )
+    .size()
+    .rename(
+        columns={
+            "_codigo_invitacion_normalizado":
+                "codigo",
+
+            "size":
+                "counter",
+        }
+    )
 )
 
 
-df_aliados = df_aliados.merge(
-    conteo_usuarios_codigo,
-    left_on="codigo_normalizado",
-    right_on="_codigo_invitacion_normalizado",
-    how="left",
+# ============================================================
+# CLASIFICAR ORIGEN DE CADA CÓDIGO
+# ============================================================
+
+codigos_laboral_heros_aliados[
+    "origen"
+] = (
+    codigos_laboral_heros_aliados[
+        "codigo"
+    ]
+    .apply(
+        lambda codigo:
+            "Core Team"
+            if codigo in codigos_core_team
+            else (
+                "Aliados"
+                if codigo in codigos_aliados
+                else "Laboral Heros"
+            )
+    )
 )
 
 
-df_aliados["counter"] = (
-    df_aliados["counter"]
-    .fillna(0)
-    .astype(int)
-)
-
-
-# Código original de communities
+# ============================================================
+# CÓDIGO ORIGINAL DE COMMUNITIES
+# ============================================================
 
 codigos_originales = (
     communities.loc[
@@ -4078,92 +4563,88 @@ codigos_originales = (
 )
 
 
-df_aliados = df_aliados.merge(
-    codigos_originales,
-    left_on="codigo_normalizado",
-    right_on="_codigo_aliado_normalizado",
-    how="left",
-)
-
-
-df_aliados["codigo"] = (
-    df_aliados["code"]
-)
-
-
-df_aliados["origen"] = "Aliados"
-
-
-df_aliados = df_aliados[
-    [
-        "codigo",
-        "origen",
-        "counter",
-    ]
-]
-
-
 # ============================================================
-# LABORAL HEROS
+# RECUPERAR CÓDIGO ORIGINAL DE ALIADOS
 # ============================================================
 
-df_laboral_heros = (
-    conteo_usuarios_codigo[
-        conteo_usuarios_codigo[
-            "_codigo_invitacion_normalizado"
-        ].isin(
-            codigos_laboral_heros
-        )
+codigos_laboral_heros_aliados = (
+    codigos_laboral_heros_aliados
+    .merge(
+        codigos_originales,
+        left_on="codigo",
+        right_on="_codigo_aliado_normalizado",
+        how="left",
+    )
+)
+
+
+codigos_laboral_heros_aliados[
+    "codigo"
+] = (
+    codigos_laboral_heros_aliados[
+        "code"
     ]
-    .copy()
-)
-
-
-df_laboral_heros["codigo"] = (
-    df_laboral_heros[
-        "_codigo_invitacion_normalizado"
-    ]
-)
-
-
-df_laboral_heros["origen"] = (
-    "Laboral Heros"
-)
-
-
-df_laboral_heros = df_laboral_heros[
-    [
-        "codigo",
-        "origen",
-        "counter",
-    ]
-]
-
-
-# ============================================================
-# UNIR TABLA DE CÓDIGOS
-# ============================================================
-
-df_codigos = pd.concat(
-    [
-        df_aliados,
-        df_laboral_heros,
-    ],
-    ignore_index=True,
-)
-
-
-df_codigos = (
-    df_codigos
-    .drop_duplicates(
-        subset=[
+    .combine_first(
+        codigos_laboral_heros_aliados[
             "codigo"
         ]
     )
-    .sort_values(
-        by=[
-            "origen",
+)
+
+
+# ============================================================
+# LIMPIAR COLUMNAS
+# ============================================================
+
+codigos_laboral_heros_aliados = (
+    codigos_laboral_heros_aliados[
+        [
             "codigo",
+            "origen",
+            "counter",
+        ]
+    ]
+)
+
+
+# ============================================================
+# ORDENAR
+# ============================================================
+
+orden_origen = {
+    "Aliados": 0,
+    "Core Team": 1,
+    "Laboral Heros": 2,
+}
+
+
+codigos_laboral_heros_aliados[
+    "_orden"
+] = (
+    codigos_laboral_heros_aliados[
+        "origen"
+    ]
+    .map(
+        orden_origen
+    )
+)
+
+
+codigos_laboral_heros_aliados = (
+    codigos_laboral_heros_aliados
+    .sort_values(
+        [
+            "_orden",
+            "counter",
+        ],
+        ascending=[
+            True,
+            False,
+        ],
+    )
+    .drop(
+        columns=[
+            "_orden"
         ]
     )
     .reset_index(
@@ -4176,52 +4657,15 @@ df_codigos = (
 # USUARIOS INVITADOS POR ALIADOS
 # ============================================================
 
-df_usuarios_aliados = users[
-    users[
-        "_codigo_invitacion_normalizado"
-    ].isin(
-        codigos_aliados
-    )
-].copy()
-
-
-df_usuarios_aliados[
-    "codigo_aliado"
-] = (
-    df_usuarios_aliados[
-        "usedInvitationCode"
+usuarios_invitados_aliados = (
+    usuarios_con_codigo[
+        usuarios_con_codigo[
+            "_codigo_invitacion_normalizado"
+        ].isin(
+            codigos_aliados
+        )
     ]
-    .astype(str)
-    .str.strip()
-)
-
-
-df_usuarios_aliados = df_usuarios_aliados[
-    [
-        "_id",
-        "firstName",
-        "lastName",
-        "codigo_aliado",
-        "isActive",
-    ]
-].copy()
-
-
-df_usuarios_aliados = (
-    df_usuarios_aliados
-    .rename(
-        columns={
-            "_id": "usuario_id"
-        }
-    )
-    .drop_duplicates(
-        subset=[
-            "usuario_id"
-        ]
-    )
-    .reset_index(
-        drop=True
-    )
+    .copy()
 )
 
 
@@ -4229,201 +4673,161 @@ df_usuarios_aliados = (
 # USUARIOS INVITADOS POR LABORAL HEROS
 # ============================================================
 
-df_usuarios_heros = users[
-    users[
-        "_codigo_invitacion_normalizado"
-    ].isin(
-        codigos_laboral_heros
-    )
-].copy()
-
-
-df_usuarios_heros[
-    "codigo_LaboralHeros"
-] = (
-    df_usuarios_heros[
-        "usedInvitationCode"
-    ]
-    .astype(str)
-    .str.strip()
-)
-
-
-df_usuarios_heros = df_usuarios_heros[
-    [
-        "_id",
-        "firstName",
-        "lastName",
-        "codigo_LaboralHeros",
-        "isActive",
-    ]
-].copy()
-
-
-df_usuarios_heros = (
-    df_usuarios_heros
-    .rename(
-        columns={
-            "_id": "usuario_id"
-        }
-    )
-    .drop_duplicates(
-        subset=[
-            "usuario_id"
-        ]
-    )
-    .reset_index(
-        drop=True
-    )
-)
-
-
-# ============================================================
-# MARCAR ORIGEN EN EL DATASET PRINCIPAL
-# ============================================================
-
-df_users_cv[
-    "origen_invitacion"
-] = "Sin código"
-
-
-df_users_cv[
-    "codigo_invitacion"
-] = np.nan
-
-
-df_users_cv[
-    "cantidad_invitados"
-] = 0
-
-
-# Mapa usuario → código/origen
-
-mapa_invitaciones = users[
-    [
-        "_id",
-        "usedInvitationCode",
-        "_codigo_invitacion_normalizado",
-    ]
-].copy()
-
-
-mapa_invitaciones = (
-    mapa_invitaciones
-    .rename(
-        columns={
-            "_id":
-                "_id_postulante"
-        }
-    )
-)
-
-
-mapa_invitaciones[
-    "_id_postulante"
-] = (
-    mapa_invitaciones[
-        "_id_postulante"
-    ]
-    .apply(limpiar_id)
-)
-
-
-mapa_invitaciones[
-    "codigo_invitacion"
-] = (
-    mapa_invitaciones[
-        "usedInvitationCode"
-    ]
-    .replace(
-        [
-            "",
-            "nan",
-            "None",
-            "null",
-        ],
-        np.nan,
-    )
-)
-
-
-mapa_invitaciones[
-    "origen_invitacion"
-] = np.where(
-    mapa_invitaciones[
-        "_codigo_invitacion_normalizado"
-    ].isin(
-        codigos_aliados
-    ),
-    "Aliados",
-    np.where(
-        mapa_invitaciones[
+usuarios_invitados_laboral_heros = (
+    usuarios_con_codigo[
+        usuarios_con_codigo[
             "_codigo_invitacion_normalizado"
         ].isin(
             codigos_laboral_heros
-        ),
-        "Laboral Heros",
-        "Sin código",
-    ),
-)
-
-
-df_users_cv = df_users_cv.merge(
-    mapa_invitaciones[
-        [
-            "_id_postulante",
-            "codigo_invitacion",
-            "origen_invitacion",
-        ]
-    ],
-    on="_id_postulante",
-    how="left",
-    suffixes=(
-        "",
-        "_invitacion",
-    ),
-)
-
-
-df_users_cv[
-    "codigo_invitacion"
-] = (
-    df_users_cv[
-        "codigo_invitacion_invitacion"
+        )
     ]
-    .combine_first(
-        df_users_cv[
-            "codigo_invitacion"
-        ]
-    )
-)
-
-
-df_users_cv[
-    "origen_invitacion"
-] = (
-    df_users_cv[
-        "origen_invitacion_invitacion"
-    ]
-    .combine_first(
-        df_users_cv[
-            "origen_invitacion"
-        ]
-    )
-)
-
-
-df_users_cv = df_users_cv.drop(
-    columns=[
-        "codigo_invitacion_invitacion",
-        "origen_invitacion_invitacion",
-    ],
-    errors="ignore",
+    .copy()
 )
 
 
 # ============================================================
-# VALIDACIÓN
+# USUARIOS INVITADOS POR CORE TEAM
+# ============================================================
+
+usuarios_invitados_core_team = (
+    usuarios_con_codigo[
+        usuarios_con_codigo[
+            "_codigo_invitacion_normalizado"
+        ].isin(
+            codigos_core_team
+        )
+    ]
+    .copy()
+)
+
+
+
+# ============================================================
+# PREPARAR USUARIOS INVITADOS
+# ============================================================
+
+columna_first = buscar_columna(
+    usuarios_con_codigo,
+    [
+        "firstName",
+        "firstname",
+        "first_name",
+    ],
+)
+
+
+columna_last = buscar_columna(
+    usuarios_con_codigo,
+    [
+        "lastName",
+        "lastname",
+        "last_name",
+    ],
+)
+
+
+def preparar_usuarios_invitados(
+    df_invitados
+):
+
+    df_invitados = df_invitados.copy()
+
+
+    if columna_first:
+
+        df_invitados[
+            "firstName"
+        ] = df_invitados[
+            columna_first
+        ]
+
+    else:
+
+        df_invitados[
+            "firstName"
+        ] = np.nan
+
+
+    if columna_last:
+
+        df_invitados[
+            "lastName"
+        ] = df_invitados[
+            columna_last
+        ]
+
+    else:
+
+        df_invitados[
+            "lastName"
+        ] = np.nan
+
+
+    if "isActive" not in df_invitados.columns:
+
+        df_invitados[
+            "isActive"
+        ] = False
+
+
+    resultado = df_invitados[
+        [
+            "_id",
+            "firstName",
+            "lastName",
+            "_codigo_invitacion_normalizado",
+            "isActive",
+        ]
+    ].copy()
+
+
+    resultado = resultado.rename(
+        columns={
+            "_id":
+                "usuario_id",
+
+            "_codigo_invitacion_normalizado":
+                "codigo_invitacion",
+        }
+    )
+
+
+    return (
+        resultado
+        .drop_duplicates(
+            subset=[
+                "usuario_id"
+            ]
+        )
+        .reset_index(
+            drop=True
+        )
+    )
+
+
+usuarios_invitados_aliados = (
+    preparar_usuarios_invitados(
+        usuarios_invitados_aliados
+    )
+)
+
+
+usuarios_invitados_laboral_heros = (
+    preparar_usuarios_invitados(
+        usuarios_invitados_laboral_heros
+    )
+)
+
+
+usuarios_invitados_core_team = (
+    preparar_usuarios_invitados(
+        usuarios_invitados_core_team
+    )
+)
+
+
+# ============================================================
+# VALIDACIÓN CÓDIGOS
 # ============================================================
 
 print()
@@ -4433,9 +4837,17 @@ print(
 
 
 print(
+    "Usuarios con código:",
+    len(
+        usuarios_con_codigo
+    ),
+)
+
+
+print(
     "Usuarios invitados por Aliados:",
     len(
-        df_usuarios_aliados
+        usuarios_invitados_aliados
     ),
 )
 
@@ -4443,60 +4855,93 @@ print(
 print(
     "Usuarios invitados por Laboral Heros:",
     len(
-        df_usuarios_heros
+        usuarios_invitados_laboral_heros
     ),
 )
 
 
 print(
-    "Usuarios con código:",
+    "Usuarios invitados por Core Team:",
     len(
-        users_con_codigo
+        usuarios_invitados_core_team
     ),
 )
 
 
+print(
+    "Códigos únicos:",
+    len(
+        codigos_laboral_heros_aliados
+    ),
+)
+
+
+print()
 print(
     "Distribución:"
 )
 
 
 print(
-    df_codigos[
+    codigos_laboral_heros_aliados[
         "origen"
     ].value_counts()
 )
+
+
 
 
 # ============================================================
 # GUARDAR CACHE
 # ============================================================
 
-df_codigos.to_csv(
-    os.path.join(
-        OUTPUT_DIR,
-        "codigos_laboral_heros_aliados.csv",
-    ),
+ruta_codigos = os.path.join(
+    OUTPUT_DIR,
+    "codigos_laboral_heros_aliados.csv",
+)
+
+
+ruta_usuarios_aliados = os.path.join(
+    OUTPUT_DIR,
+    "usuarios_invitados_aliados.csv",
+)
+
+
+ruta_usuarios_laboral_heros = os.path.join(
+    OUTPUT_DIR,
+    "usuarios_invitados_laboral_heros.csv",
+)
+
+
+ruta_usuarios_core_team = os.path.join(
+    OUTPUT_DIR,
+    "usuarios_invitados_core_team.csv",
+)
+
+
+codigos_laboral_heros_aliados.to_csv(
+    ruta_codigos,
     index=False,
     encoding="utf-8-sig",
 )
 
 
-df_usuarios_aliados.to_csv(
-    os.path.join(
-        OUTPUT_DIR,
-        "usuarios_invitados_aliados.csv",
-    ),
+usuarios_invitados_aliados.to_csv(
+    ruta_usuarios_aliados,
     index=False,
     encoding="utf-8-sig",
 )
 
 
-df_usuarios_heros.to_csv(
-    os.path.join(
-        OUTPUT_DIR,
-        "usuarios_invitados_laboral_heros.csv",
-    ),
+usuarios_invitados_laboral_heros.to_csv(
+    ruta_usuarios_laboral_heros,
+    index=False,
+    encoding="utf-8-sig",
+)
+
+
+usuarios_invitados_core_team.to_csv(
+    ruta_usuarios_core_team,
     index=False,
     encoding="utf-8-sig",
 )
@@ -4509,17 +4954,27 @@ print(
 
 
 print(
-    "   data/cache/codigos_laboral_heros_aliados.csv"
+    "   ",
+    ruta_codigos,
 )
+
 
 print(
-    "   data/cache/usuarios_invitados_aliados.csv"
+    "   ",
+    ruta_usuarios_aliados,
 )
+
 
 print(
-    "   data/cache/usuarios_invitados_laboral_heros.csv"
+    "   ",
+    ruta_usuarios_laboral_heros,
 )
 
+
+print(
+    "   ",
+    ruta_usuarios_core_team,
+)
 
 # ============================================================
 # MODALIDAD LABORAL
@@ -6964,6 +7419,132 @@ else:
                 "categoria_curso"
             ].value_counts()
         )
+
+
+
+# ============================================================
+# INCORPORAR ORIGEN DE INVITACIÓN AL DATASET PRINCIPAL
+# ============================================================
+
+print()
+print(
+    "========== ORIGEN DE INVITACIÓN =========="
+)
+
+
+# ------------------------------------------------------------
+# ASEGURAR ID NORMALIZADO EN USERS
+# ------------------------------------------------------------
+
+usuarios_origen = users[
+    [
+        "_id",
+        "_codigo_invitacion_normalizado"
+    ]
+].copy()
+
+
+usuarios_origen["_id_postulante"] = (
+    usuarios_origen["_id"]
+    .apply(limpiar_id)
+)
+
+
+# ------------------------------------------------------------
+# CLASIFICAR ORIGEN
+# ------------------------------------------------------------
+
+usuarios_origen[
+    "origen_invitacion"
+] = (
+    usuarios_origen[
+        "_codigo_invitacion_normalizado"
+    ]
+    .apply(
+        lambda codigo:
+            "Sin código"
+            if codigo == ""
+            else (
+                "Core Team"
+                if codigo in codigos_core_team
+                else (
+                    "Aliados"
+                    if codigo in codigos_aliados
+                    else "Laboral Heros"
+                )
+            )
+    )
+)
+
+
+# ------------------------------------------------------------
+# ELIMINAR COLUMNAS QUE NO NECESITAMOS
+# ------------------------------------------------------------
+
+usuarios_origen = usuarios_origen[
+    [
+        "_id_postulante",
+        "origen_invitacion"
+    ]
+].copy()
+
+
+# ------------------------------------------------------------
+# ELIMINAR POSIBLES COLUMNAS ANTERIORES
+# ------------------------------------------------------------
+
+if "origen_invitacion" in df_users_cv.columns:
+
+    df_users_cv = df_users_cv.drop(
+        columns=[
+            "origen_invitacion"
+        ]
+    )
+
+
+# ------------------------------------------------------------
+# INCORPORAR AL DATASET PRINCIPAL
+# ------------------------------------------------------------
+
+df_users_cv = df_users_cv.merge(
+    usuarios_origen,
+    on="_id_postulante",
+    how="left",
+    validate="one_to_one"
+)
+
+
+# ------------------------------------------------------------
+# ASEGURAR VALORES
+# ------------------------------------------------------------
+
+df_users_cv[
+    "origen_invitacion"
+] = (
+    df_users_cv[
+        "origen_invitacion"
+    ]
+    .fillna("Sin código")
+)
+
+
+# ------------------------------------------------------------
+# VALIDACIÓN
+# ------------------------------------------------------------
+
+print(
+    "Distribución en dataset principal:"
+)
+
+
+print(
+    df_users_cv[
+        "origen_invitacion"
+    ].value_counts(
+        dropna=False
+    )
+)
+
 # ============================================================
 # GUARDAR DASHBOARD
 # ============================================================

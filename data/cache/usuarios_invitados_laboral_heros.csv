@@ -1,4 +1,4 @@
-﻿usuario_id,firstName,lastName,codigo_LaboralHeros,isActive
+﻿usuario_id,firstName,lastName,codigo_invitacion,isActive
 66b975bfbf7e18bdfd26381e,test,test,KYU379,True
 67abf5cb80922a3d7cf10386,VALERIA   DEL  CARMEN,CHAVARRY ALVARADO,AC4579,True
 697cd1a7fbd83ca7a769bf0e,SOFIA SHARON,FLORES GARCIA,SF6963,True
@@ -165,34 +165,16 @@
 69d5f17a1dcb9098569e4bc2,Juan ,Rodriguez,KYU379,True
 69d6638d25122648a24f1d31,Juan ,Rodriguez,KYU379,True
 69d71acd9c7aa0992a8e2afc,Victoria,Laínez,CA1847,True
-69e1054b041c0873fe1a4db3,RODRIGO ESTEBAN,FLORES REYNOSO,AH7408,True
-69e10566041c0873fe1a4dca,GEDEON GUIDO,CARDENAS CALDERON,AH7408,True
 69e82b893708aede00e544f9,Claudia,Catalán,SF6963,True
-69e8feb36f55e265f56943f2,Nikole,Canaza,SL9775,True
-69e8ff256f55e265f569443c,Fanny ,Ccallo Sacsi ,SL9775,True
-69e8ff476f55e265f5694464,Elizabeth,Juarez,SL9775,True
-69e8ff5f6f55e265f569447f,Mariafernanda,Casillas,SL9775,True
-69e90a3c6f55e265f5694800,Josselin Jeaneth,Cori Soria,SL9775,True
-69e90b5f6f55e265f5694864,RLizbeth,EC,SL9775,True
-69f25eaddb5e9cdca9c1a848,Naomi,Gonzalez Siche,LA8486,True
 69f40b5bc1e64cb25457a222,Dennis Anthony,León Baldeón,JL9255,True
 69f40b84c1e64cb25457a23a,Camila Margareth Luciana,Collao Huaraya,JL9255,True
 69f40d5cc1e64cb25457a314,DIEGO ANDRÉ,ARMIS QUISPE,JL9255,True
 69f40ef1c1e64cb25457a397,Kevin,Medina Valencia,JL9255,True
 69fbf6052924f43912dfda97,Jean Pierre,Guevara,SF6963,True
 6a0267a5f17c40a03586c494,Michel,Rojas,SF6963,True
-6a074fc42c2c6486907bfbb3,Joseph Angelo,Martel Pino,AH7408,True
-6a074fd52c2c6486907bfbbf,Ailton,Torres Yactapuri,AH7408,True
-6a074fdd2c2c6486907bfbc7,Edwin D.,Cueva Herrera,AH7408,True
 6a095d02fb2d15f3bfdbde9b,Brayan,Peña,CA1847,True
-6a0cd943e1bb8228ea176836,JHONEL MAHEL,ESTEBAN VERA,AH7408,True
-6a0cdc0ee1bb8228ea176cf3,AARON ALFREDO,NUÑEZ QUISPE,AH7408,True
-6a0e1075e4d9a22b9eee8cef,Adrian,Llanos,AH7408,True
-6a0f72805161ed0ca637b1db,Nick,Cayetano,AH7408,True
 6a14ab6382b5c5bb2b0f25f1,Yoselyn,Aragon,NE2321,True
 6a14b47082b5c5bb2b0f267f,Alison Estefany,Paricahua Ccama,NE2321,True
-6a15cd01a9be8c9eb1ace95c,Diego,Flores,AH7408,True
-6a184adceb890c93001cbb46,LUZ BRISSEYDA,CCARI BERNEDO,LA8486,True
 6a1a398d96f20145d49762d6,Gonzalo,Curty Tancun,NE2321,True
 6a1a39ab96f20145d49762fb,CRISTOPHER AUGUSTO,CORNEJO ANCOCALLO,NE2321,True
 6a1a39bd96f20145d497630f,Sharon Selene ,Ortiz ,NE2321,True
@@ -200,8 +182,6 @@
 6a1b5a9296f20145d4978296,RONALDO CRISTIAN,PAREDES INFANTES,SG2117,True
 6a1b5ab296f20145d49782af,José Antonio,De la Cruz Picha,SG2117,True
 6a1b5ad496f20145d49782db,Silvana,Yaya,SG2117,True
-6a1b612696f20145d49784b7,Yukei,Ch,AH7408,True
-6a1b626f96f20145d49784e5,Giancarlo,Barcelli,AH7408,True
 6a1b71e496f20145d49787f5,Junior,Villanueva Carranza,ER4337,True
 6a1b71f296f20145d4978801,Andree,Sernaqué,ER4337,True
 6a1b720896f20145d4978838,Pablo,Urbina,ER4337,True
@@ -219,14 +199,12 @@
 6a1b726796f20145d497893a,Camila,Sandoval,ER4337,True
 6a1b726d96f20145d4978954,Cristhian,Plasencia,ER4337,True
 6a1b727196f20145d4978962,Katherin,Oliva,ER4337,True
-6a1c9f13b5def8cb8328e85a,Valery,Peña Romero,AH7408,False
 6a1cb2f9b5def8cb8328e8ca,Sebastian,Borja,ZY807,True
 6a1cb35ab5def8cb8328e8d8,Oscar,Huamanchahua,ZY807,True
 6a1cb365b5def8cb8328e8e0,Leidy Lucero,Cisneros Cabello,ZY807,True
 6a1cb376b5def8cb8328e8ee,Jhonatan,Caja Teran,ZY807,True
 6a1cb383b5def8cb8328e8f6,Rut,Zelaya,ZY807,True
 6a1cb6cfb5def8cb8328ec63,L. Mario,Saldaña Sánchez,ZY807,True
-6a1e555bc340d2f4e88ef7b1,Giancarlo,Barcelli,AH7408,True
 6a22e3bf2e1560e72b6b5f61,Joao,Rojas Sanchez ,SF6963,True
 6a22e3cf2e1560e72b6b5f73,Nicolas,Chavez,SF6963,True
 6a22e3dc2e1560e72b6b5f81,giorgio,loli,SF6963,True
@@ -284,107 +262,7 @@
 6a287bf6e69903c5927e0ba9,Tamara,Angeles,NE2321,True
 6a287ca9e69903c5927e0e8e,Richard Alexander,Yuyali Guillen ,NE2321,True
 6a2884dae69903c5927e1089,Lucero ,Quispe Pelaez ,NE2321,True
-6a2b72cc72c1232823f9b06c,Mathiass,Sanchez,AH7408,True
 6a2d9ae21078ead4ea42ca47,Guillermo,Hoyos Palomares,BC6722,True
 6a2d9b851078ead4ea42ca91,David,Gonzales Neyra,BC6722,True
 6a2d9bb91078ead4ea42caaa,jhon rodrigo,vargas chuquichanca,BC6722,True
-6a30973be5fa6db805a10b3c,Deysi Belen ,Gomez Mamani ,AH7408,True
-6a30976fe5fa6db805a10b64,NELIDA MARILUZ,URRUTIA QUISPE,AH7408,True
-6a309ca7e5fa6db805a10d5c,Mayte,Hallasi,AH7408,True
 6a40158b0956ae330a7b7765,Clever Johann,Machaca Asto,ER4337,True
-6a406a26f9d1613ea7fe3089,Saddam F.,Guido G.,AH7408,True
-6a406a27f9d1613ea7fe308d,YULEIMY YASMIN,LUCAS ZASIGA,AH7408,True
-6a406a30f9d1613ea7fe3095,CRISTHIAN JAVIER,PURIS QUISPE,AH7408,True
-6a406a31f9d1613ea7fe3099,PAOLO JOSÉ,VÁSQUEZ TERÁN,AH7408,True
-6a406a37f9d1613ea7fe30ae,DULCE ARIANA,HERNANDEZ MARCELO,AH7408,True
-6a406a5bf9d1613ea7fe30d9,ANGHELY NICOLE,ROMERO HUALLA,AH7408,True
-6a407762f9d1613ea7fe3999,Angelo Raul,Ramos Camacho,AH7408,True
-6a40782df9d1613ea7fe3a81,Franco,Juarez Gonzales,AH7408,True
-6a40784af9d1613ea7fe3aa5,Antonella Xileme,Chaparro Ore,AH7408,True
-6a41b1f638b8fff9e3ffa597,Harol Gustavo ,Figueroa Mendoza,AH7408,True
-6a41cc3c38b8fff9e3ffdcff,YANELA CORAIMA,SEVILLANO CALDAS,AH7408,True
-6a4206cf38b8fff9e3ffe7f8,Romek Phol Gael,Calatayud Pari,AH7408,True
-6a42105638b8fff9e3ffe88d,Jair Adelmar,Ciriaco Paucar,AH7408,True
-6a42975b22a0070d3ede172c,Gael Albeyro,García Orozco,AH7408,True
-6a42a4a29eec25278330b21a,Juan Valentino,Zegarra Itusaca,AH7408,True
-6a42b2799eec25278330b95f,VIVIAN THALIA,LAUREANO CÁRDENAS,AH7408,True
-6a42bcca9eec25278330bbf0,PEDRO IGNACIO,OSCCO HERRERA,AH7408,True
-6a42cea09eec25278330c237,María Belén,Bancayan Panta,AH7408,True
-6a42d3d39eec25278330c4f2,Piero Alexander,Navarrete Saenz,AH7408,True
-6a42e27d9eec25278330c981,Deybi Franco,Sanchez Huerta,AH7408,True
-6a42e2de9eec25278330c99a,Sebastián,Félix Lujan,AH7408,True
-6a42ebc29eec25278330cb82,Lucio,Damián,AH7408,True
-6a42ecad9eec25278330cbb2,isaak Lucio,damian javier,AH7408,True
-6a42ee519eec25278330cc44,Tomy,Evans,AH7408,True
-6a42f4ab9eec25278330ced6,rodrigo gabriel,sanchez ortega,AH7408,True
-6a4303e29eec25278330d459,Josue,Huaman rentería,AH7408,True
-6a4310bc9eec252783310e5e,Adriana,Tovar,AH7408,True
-6a431b9c9eec25278331131e,STIVEN RUBEN,ORTIZ TEJEDA,AH7408,True
-6a431d949eec2527833113bc,Joaquín Matías,Calderón Tejada,AH7408,True
-6a431e239eec2527833113cc,Jose Adrian,Ore Leon,AH7408,True
-6a4325529eec2527833116c8,Erick Fabricio,Vela Rodriguez,AH7408,True
-6a4329139eec2527833118e4,fernando,eguren,AH7408,True
-6a434eed9eec252783312d0b,Matías ,Castro Untiveros,AH7408,True
-6a438e5c9eec252783312eb2,Diego Alexander,Ayala Farro,AH7408,True
-6a70affb9e6dd9dda5ea7603,Williams,Quispe pacori,LA8486,True
-6a70afff9e6dd9dda5ea7608,Marco Andre,Amado Cerpa,LA8486,True
-6a70b00c9e6dd9dda5ea7618,Maria Anjhely,Ollachica Arcos,LA8486,True
-6a70b00f9e6dd9dda5ea761b,Gianella Anaí ,Soto Paredes ,LA8486,True
-6a70b01a9e6dd9dda5ea762c,Sergio Andre,Macedo Ramos,LA8486,True
-6a70b0239e6dd9dda5ea7644,Alair Pérez,Pérez,LA8486,True
-6a70b02b9e6dd9dda5ea7652,Camila,Calisaya C.,LA8486,True
-6a70b0929e6dd9dda5ea76da,HENRY JUNIORS,LUDEÑA CHIRIO,LA8486,True
-6a70b33a9e6dd9dda5ea7a28,Gianella,Gonzales,LA8486,True
-6a70b33e9e6dd9dda5ea7a2e,sebastian,ccasa mamani,LA8486,True
-6a70b33f9e6dd9dda5ea7a32,ALESSANDRO GUALBERTO,BARRIOS AYALA,LA8486,True
-6a70b3469e6dd9dda5ea7a40,Oscar,Vera,LA8486,True
-6a70b3469e6dd9dda5ea7a44,SHARON NICOOL,CERPA QUICAÑA,LA8486,True
-6a70b3479e6dd9dda5ea7a48,April Stephany,Pacco Vallejos,LA8486,True
-6a70b3499e6dd9dda5ea7a4d,Alexandra Valde,Valde,LA8486,True
-6a70b3549e6dd9dda5ea7a73,BRYAN IRVING,PONCE CERPA,LA8486,True
-6a70b3589e6dd9dda5ea7a81,LIZBETH ANDREA,PACURI UMIYAURI,LA8486,True
-6a70b3589e6dd9dda5ea7a89,Geraldine Tatiana,Monrroy Velarde,LA8486,True
-6a70b3599e6dd9dda5ea7a8d,Alexander,Lazo Chicalla,LA8486,True
-6a70b35a9e6dd9dda5ea7a93,Anayka,Farfan,LA8486,True
-6a70b35e9e6dd9dda5ea7aa2,kytzia,alizee,LA8486,True
-6a70b35e9e6dd9dda5ea7aa8,peter,parker,LA8486,True
-6a70b3649e6dd9dda5ea7ace,ALEXS ,CHACÓN,LA8486,True
-6a70b3649e6dd9dda5ea7ad4,Antonella,Godoy Velarde ,LA8486,True
-6a70b36a9e6dd9dda5ea7ae8,FERNANDA MIA,MACEDO RODRIGUEZ,LA8486,True
-6a70b36d9e6dd9dda5ea7af9,Alexandra Mariafe ,Sonco Cardenas,LA8486,True
-6a70b36e9e6dd9dda5ea7afe,ISAAC PAUL,RAMOS MAMANI,LA8486,True
-6a70b3719e6dd9dda5ea7b14,Luis Fernando,Garcia Huamani ,LA8486,True
-6a70b3739e6dd9dda5ea7b22,Claudia Brigitte ,Huarachi Vilca ,LA8486,True
-6a70b3789e6dd9dda5ea7b49,Ariel Dicson,Taco Huaman,LA8486,True
-6a70b37a9e6dd9dda5ea7b53,JEAN,ALMANACIN,LA8486,True
-6a70b37d9e6dd9dda5ea7b64,Larissa Abigail,Sucasaca Deza,LA8486,True
-6a70b3809e6dd9dda5ea7b6e,Alessandro Gabriel ,Fernández Yujra,LA8486,True
-6a70b3819e6dd9dda5ea7b83,Any Anelhis ,Alarcón Paricanaza ,LA8486,True
-6a70b3899e6dd9dda5ea7ba2,Iyari Lucero ,Velasco Panihura ,LA8486,True
-6a70b38b9e6dd9dda5ea7ba9,Rubiñho Anderson ,Quispicho Cansaya ,LA8486,True
-6a70b38d9e6dd9dda5ea7bb2,jose carlos,chavez,LA8486,True
-6a70b3939e6dd9dda5ea7bc3,Cisely,Herreros Zeballos,LA8486,True
-6a70b3949e6dd9dda5ea7bc7,SANDY MAGDIEL,BUENO ALPACA,LA8486,True
-6a70b39f9e6dd9dda5ea7c24,Braly Carlo Andre,Champi Huamani,LA8486,True
-6a70b3a09e6dd9dda5ea7c27,Thalia lucero,Aguilar Calderon,LA8486,True
-6a70b3a79e6dd9dda5ea7c55,Milagros Michael ,Cruz Pinares ,LA8486,True
-6a70b3af9e6dd9dda5ea7c6c,Massiel Lucia ,Ramos Villena ,LA8486,True
-6a70b3b09e6dd9dda5ea7c75,Emanuel Daniel,Yaguillo Denos,LA8486,True
-6a70b3b79e6dd9dda5ea7c87,Oscar ,Sulla ,LA8486,True
-6a70b3d19e6dd9dda5ea7d16,Camila Alesandra,Taco Medina,LA8486,True
-6a70b3e99e6dd9dda5ea7df5,Joselyn Valeria ,Cuno Flores ,LA8486,True
-6a70b3f59e6dd9dda5ea7e2a,GIAN FRANCO JOSE,MOTTA MANRIQUE,LA8486,True
-6a70b4019e6dd9dda5ea7e7e,gus,pizarro,LA8486,True
-6a70b4249e6dd9dda5ea7f59,MILAGROS FATIMA,CALLO HUANCOLLO,LA8486,True
-6a70b5319e6dd9dda5ea842f,Alison Anyha Alidh ,Ari Mamani ,LA8486,True
-6a70b58b9e6dd9dda5ea84ae,Larissa,Sucasaca,LA8486,True
-6a70b5b99e6dd9dda5ea84e0,André Dominic,Apaza Huamán,LA8486,True
-6a70b7919e6dd9dda5ea890f,Brianna Jaeleen,Apaza Ccahuana ,LA8486,True
-6a70b8249e6dd9dda5ea9253,VANESSA MILAGROS,ALARCON BENITO,LA8486,True
-6a70b8879e6dd9dda5ea96aa,Karelia Esteisi,Apaza Apaza,LA8486,True
-6a70b9ff9e6dd9dda5eaa065,Diego David,Ayque Charaja,LA8486,True
-6a70beb29e6dd9dda5eaa721,Eddy Daniel,Mantari Garcia,LA8486,True
-6a70d8f09e6dd9dda5eab4b6,DIEGO ROBERT,ROJAS SOHAÑA,LA8486,True
-6a736004bf44de367b9006d4,Alair Gabriel,Pérez Zea,LA8486,True
-6a7360b1bf44de367b9006fe,Alair Gabriel,Pérez Zea,LA8486,True
-6a738d47bf44de367b901320,LUIS FERNANDO,GARCIA HUAMANI,LA8486,True

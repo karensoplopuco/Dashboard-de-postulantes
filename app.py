@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 from pathlib import Path
 import os
+import inspect
 
 # ============================================================
 # CONFIGURACIÓN
@@ -331,6 +332,33 @@ RUTA_CURSOS_INTERES = (
 df_cursos_interes = pd.read_csv(
     RUTA_CURSOS_INTERES,
     encoding="utf-8-sig"
+)
+
+# ============================================================
+# NORMALIZAR ID DEL POSTULANTE
+# ============================================================
+
+if "_id_postulante" not in df_cursos_interes.columns:
+
+    if "_id_user" in df_cursos_interes.columns:
+
+        df_cursos_interes = df_cursos_interes.rename(
+            columns={
+                "_id_user": "_id_postulante"
+            }
+        )
+
+    else:
+
+        df_cursos_interes["_id_postulante"] = pd.Series(
+            dtype="string"
+        )
+
+
+df_cursos_interes["_id_postulante"] = (
+    df_cursos_interes["_id_postulante"]
+    .astype("string")
+    .str.strip()
 )
 
 # ============================================================
@@ -1626,44 +1654,7 @@ with c4:
         )
 
 # ============================================================
-# CARGAR CÓDIGOS DE INVITACIONES
-# ============================================================
-
-ruta_codigos_invitacion = os.path.join(
-    "data",
-    "codigos_laboral_heros_aliados.csv"
-)
-
-if os.path.exists(ruta_codigos_invitacion):
-
-    df_codigos_invitacion = pd.read_csv(
-        ruta_codigos_invitacion
-    )
-
-    df_codigos_invitacion["codigo"] = (
-        df_codigos_invitacion["codigo"]
-        .astype("string")
-        .str.strip()
-    )
-
-    df_codigos_invitacion["origen"] = (
-        df_codigos_invitacion["origen"]
-        .astype("string")
-        .str.strip()
-    )
-
-else:
-
-    df_codigos_invitacion = pd.DataFrame(
-        columns=[
-            "codigo",
-            "origen",
-            "counter"
-        ]
-    )
-
-# ============================================================
-# INVITACIONES - ALIADOS Y LABORAL HEROS
+# INVITACIONES
 # ============================================================
 
 st.markdown(
@@ -1673,27 +1664,60 @@ st.markdown(
 
 
 # ============================================================
-# PREPARAR DATOS
+# VALIDAR COLUMNAS
 # ============================================================
 
-if (
-    "origen_invitacion" in df.columns
-    and "codigo_invitacion" in df.columns
-):
+columnas_invitaciones = [
+    "_id_postulante",
+    "usedInvitationCode",
+    "origen_invitacion",
+    "isActive"
+]
+
+faltantes = [
+    col for col in columnas_invitaciones
+    if col not in df.columns
+]
+
+
+if faltantes:
+
+    st.warning(
+        "Faltan columnas para mostrar Invitaciones: "
+        + ", ".join(faltantes)
+    )
+
+else:
+
+    # ========================================================
+    # PREPARAR DATASET
+    # ========================================================
 
     df_invitaciones = df[
-        df["origen_invitacion"].notna()
-        & df["codigo_invitacion"].notna()
-        & df["origen_invitacion"].isin([
-            "Aliados",
-            "Laboral Heros"
-        ])
+        [
+            "_id_postulante",
+            "usedInvitationCode",
+            "origen_invitacion",
+            "isActive"
+        ]
     ].copy()
 
 
-    # --------------------------------------------------------
-    # LIMPIAR TEXTOS
-    # --------------------------------------------------------
+    # ========================================================
+    # NORMALIZAR CÓDIGO
+    # ========================================================
+
+    df_invitaciones["codigo_invitacion"] = (
+        df_invitaciones["usedInvitationCode"]
+        .astype("string")
+        .str.strip()
+        .str.upper()
+    )
+
+
+    # ========================================================
+    # NORMALIZAR ORIGEN
+    # ========================================================
 
     df_invitaciones["origen_invitacion"] = (
         df_invitaciones["origen_invitacion"]
@@ -1701,28 +1725,77 @@ if (
         .str.strip()
     )
 
-    df_invitaciones["codigo_invitacion"] = (
-        df_invitaciones["codigo_invitacion"]
-        .astype("string")
-        .str.strip()
+
+    # ========================================================
+    # NORMALIZAR ACTIVO
+    # ========================================================
+
+    df_invitaciones["usuario_activo"] = (
+    df_invitaciones["isActive"]
+    .apply(
+        lambda x: (
+            x is True
+            or
+            str(x).strip().lower()
+            in ["true", "1", "yes", "si"]
+        )
+    )
+)
+
+
+    # ========================================================
+    # SOLO INVITACIONES CON CÓDIGO
+    # ========================================================
+
+    df_invitaciones = df_invitaciones[
+        df_invitaciones["codigo_invitacion"].notna()
+        &
+        (df_invitaciones["codigo_invitacion"] != "")
+        &
+        df_invitaciones["origen_invitacion"].isin([
+            "Aliados",
+            "Laboral Heros",
+            "Core Team"
+        ])
+    ].copy()
+
+
+    # VALIDACIÓN USUARIOS INVITADOS Y ACTIVOS
+    validacion_activos = (
+        df_invitaciones
+        .groupby("origen_invitacion")
+        .agg(
+            usuarios=("_id_postulante", "nunique"),
+            activos=("usuario_activo", "sum")
+        )
+        .reset_index()
     )
 
+    validacion_activos["porcentaje_activos"] = (
+        validacion_activos["activos"]
+        / validacion_activos["usuarios"]
+        * 100
+    )
 
-    # --------------------------------------------------------
+    print()
+    print("========== VALIDACIÓN ACTIVOS INVITADOS ==========")
+    print(
+        validacion_activos.to_string(index=False)
+        )
+
+
+
+    # ========================================================
     # FILTRO DE ORIGEN
-    # --------------------------------------------------------
-
-    if "filtro_origen_invitacion" not in st.session_state:
-
-        st.session_state["filtro_origen_invitacion"] = "Todos"
-
+    # ========================================================
 
     filtro_origen = st.selectbox(
         "Filtrar por origen",
-        options=[
+        [
             "Todos",
             "Aliados",
-            "Laboral Heros"
+            "Laboral Heros",
+            "Core Team"
         ],
         key="filtro_origen_invitacion"
     )
@@ -1740,14 +1813,17 @@ if (
 
     else:
 
-        df_invitaciones_filtrado = df_invitaciones[
-            df_invitaciones["origen_invitacion"]
-            == filtro_origen
-        ].copy()
+        df_invitaciones_filtrado = (
+            df_invitaciones[
+                df_invitaciones["origen_invitacion"]
+                == filtro_origen
+            ]
+            .copy()
+        )
 
 
     # ========================================================
-    # GRÁFICOS
+    # COLUMNAS DE GRÁFICOS
     # ========================================================
 
     g1, g2 = st.columns(2)
@@ -1755,14 +1831,18 @@ if (
 
     # ========================================================
     # GRÁFICO 1
-    # POSTULANTES INVITADOS
+    # INVITADOS
     # ========================================================
 
     with g1:
 
         st.markdown(
             """
-            <p style='font-size:16px; font-weight:600; margin-bottom:8px;'>
+            <p style="
+                font-size:16px;
+                font-weight:600;
+                margin-bottom:8px;
+            ">
                 Postulantes invitados por origen
             </p>
             """,
@@ -1770,21 +1850,19 @@ if (
         )
 
 
-        # ----------------------------------------------------
-        # TODOS
-        # ALIADOS VS LABORAL HEROS
-        # ----------------------------------------------------
-
         if filtro_origen == "Todos":
 
             invitados_origen = (
                 df_invitaciones_filtrado
-                .groupby("origen_invitacion")
-                .size()
+                .groupby("origen_invitacion")[
+                    "_id_postulante"
+                ]
+                .nunique()
                 .reindex(
                     [
                         "Aliados",
-                        "Laboral Heros"
+                        "Laboral Heros",
+                        "Core Team"
                     ],
                     fill_value=0
                 )
@@ -1809,19 +1887,14 @@ if (
             )
 
 
-        # ----------------------------------------------------
-        # ALIADOS O LABORAL HEROS
-        # MOSTRAR CÓDIGOS
-        # ----------------------------------------------------
-
         else:
 
             invitados_codigo = (
                 df_invitaciones_filtrado
-                .groupby(
-                    "codigo_invitacion"
-                )
-                .size()
+                .groupby("codigo_invitacion")[
+                    "_id_postulante"
+                ]
+                .nunique()
                 .reset_index(
                     name="Postulantes"
                 )
@@ -1841,7 +1914,6 @@ if (
                     COLORS["hk"]
                 )
 
-
                 st.plotly_chart(
                     fig_invitaciones,
                     use_container_width=True,
@@ -1852,59 +1924,82 @@ if (
 
                 st.info(
                     "No hay postulantes invitados "
-                    "para el origen seleccionado."
+                    "para este origen."
                 )
 
 
     # ========================================================
     # GRÁFICO 2
-    # USUARIOS ACTIVOS POR ORIGEN
+    # ACTIVOS
     # ========================================================
 
     with g2:
 
         st.markdown(
             """
-            <p style='font-size:16px; font-weight:600; margin-bottom:8px;'>
-                Usuarios activos por origen Top 5
+            <p style="
+                font-size:16px;
+                font-weight:600;
+                margin-bottom:8px;
+            ">
+                Usuarios activos por origen
             </p>
             """,
             unsafe_allow_html=True
         )
 
 
-        # ----------------------------------------------------
-        # SOLO USUARIOS ACTIVOS
-        # ----------------------------------------------------
-
         df_activos = df_invitaciones_filtrado[
-            df_invitaciones_filtrado["isActive"]
-            .astype(str)
-            .str.lower()
-            .isin([
-                "true",
-                "1"
-            ])
+            df_invitaciones_filtrado["usuario_activo"]
         ].copy()
 
+        print()
 
-        # ----------------------------------------------------
-        # TODOS
-        # ACTIVOS DE ALIADOS VS LABORAL HEROS
-        # ----------------------------------------------------
+        print("========== DEBUG GRÁFICO ACTIVOS ==========")
+
+        print(
+            df_invitaciones_filtrado[
+                [
+                    "_id_postulante",
+                    "codigo_invitacion",
+                    "origen_invitacion",
+                    "isActive",
+                    "usuario_activo"
+                ]    
+            ].to_string(index=False)
+        )
+
+        print()
+        print("ACTIVOS:")
+        print(
+            df_activos[
+                [
+                    "_id_postulante",
+                    "codigo_invitacion",
+                    "origen_invitacion",
+                    "isActive",
+                    "usuario_activo"
+                ]
+            ].to_string(index=False)
+        )
+
+
+
+
 
         if filtro_origen == "Todos":
 
             activos_origen = (
                 df_activos
-                .groupby(
-                    "origen_invitacion"
-                )
-                .size()
+                .groupby("origen_invitacion")[
+                    "_id_postulante"
+                ]
+                .nunique()
                 .reindex(
                     [
                         "Aliados",
-                        "Laboral Heros"
+                        "Laboral Heros",
+                        "Core Team"
                     ],
                     fill_value=0
                 )
@@ -1919,8 +2014,9 @@ if (
                 "origen_invitacion",
                 "Activos",
                 [
-                    COLORS["azul_grafico_quizzes"],
-                    COLORS["verde_activos"]
+                    COLORS["azul_grafico_invitaciones"],
+                    COLORS["verde_activos"],
+                    COLORS["azul_evolucion"]
                 ]
             )
 
@@ -1932,19 +2028,14 @@ if (
             )
 
 
-        # ----------------------------------------------------
-        # ALIADOS O LABORAL HEROS
-        # TOP 5 CÓDIGOS ACTIVOS
-        # ----------------------------------------------------
-
         else:
 
             activos_codigo = (
                 df_activos
-                .groupby(
-                    "codigo_invitacion"
-                )
-                .size()
+                .groupby("codigo_invitacion")[
+                    "_id_postulante"
+                ]
+                .nunique()
                 .reset_index(
                     name="Activos"
                 )
@@ -1971,7 +2062,6 @@ if (
                     ]
                 )
 
-
                 st.plotly_chart(
                     fig_activos,
                     use_container_width=True,
@@ -1982,17 +2072,12 @@ if (
 
                 st.info(
                     "No hay usuarios activos "
-                    "para el origen seleccionado."
+                    "para este origen."
                 )
 
 
-else:
 
-    st.info(
-        "No hay información disponible sobre invitaciones."
-    )
 
-    
 # ============================================================
 # USO DE LA PLATAFORMA
 # ============================================================
