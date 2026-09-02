@@ -70,7 +70,11 @@ def cargar_todas_las_colecciones():
         "aiconversations",
         "aimessages",
         "events",
-        "eventguests"
+        "eventguests",
+        "employabilities",
+        "jobcompatibilityanalyses",
+        "usercredits",
+        "creditoperations"
     ]
 
     datos = {}
