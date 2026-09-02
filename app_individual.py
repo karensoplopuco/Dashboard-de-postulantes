@@ -2211,7 +2211,7 @@ chart_postulaciones = (
     )
 
     .mark_bar(
-        color=COLOR_GREEN,
+        color=COLOR_AC,
         cornerRadiusTopLeft=5,
         cornerRadiusTopRight=5
     )
@@ -2356,7 +2356,7 @@ if score_empleabilidad is not None:
         )
 
         .mark_bar(
-            color=COLOR_AC,
+            color=COLOR_ROSA,
             cornerRadiusTopLeft=5,
             cornerRadiusTopRight=5
         )
@@ -2506,7 +2506,7 @@ chart_actividad = (
     )
 
     .mark_bar(
-        color=COLOR_ROSA,
+        color=COLOR_GREEN,
         cornerRadiusEnd=5
     )
 
