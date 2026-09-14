@@ -6,6 +6,9 @@ import pandas as pd
 import streamlit as st
 import altair as alt
 
+import unicodedata
+import re
+
 
 # ============================================================
 # CONFIGURACIÓN DE PÁGINA
@@ -861,12 +864,8 @@ def cargar_datos():
 
     if "_id_postulante" in df.columns:
 
-        df[
-            "_id_postulante"
-        ] = (
-            df[
-                "_id_postulante"
-            ]
+        df["_id_postulante"] = (
+            df["_id_postulante"]
             .astype(str)
             .str.strip()
         )
@@ -878,12 +877,8 @@ def cargar_datos():
 
     if "fecha_registro" in df.columns:
 
-        df[
-            "fecha_registro"
-        ] = pd.to_datetime(
-            df[
-                "fecha_registro"
-            ],
+        df["fecha_registro"] = pd.to_datetime(
+            df["fecha_registro"],
             errors="coerce"
         )
 
@@ -898,31 +893,21 @@ def cargar_datos():
 
     if "edad_dashboard" in df.columns:
 
-        df[
-            "edad_dashboard"
-        ] = pd.to_numeric(
-            df[
-                "edad_dashboard"
-            ],
+        df["edad_dashboard"] = pd.to_numeric(
+            df["edad_dashboard"],
             errors="coerce"
         )
 
     elif "edad" in df.columns:
 
-        df[
-            "edad_dashboard"
-        ] = pd.to_numeric(
-            df[
-                "edad"
-            ],
+        df["edad_dashboard"] = pd.to_numeric(
+            df["edad"],
             errors="coerce"
         )
 
     else:
 
-        df[
-            "edad_dashboard"
-        ] = None
+        df["edad_dashboard"] = None
 
 
     # ========================================================
@@ -937,129 +922,32 @@ def cargar_datos():
         if "apellido" not in df.columns:
             df["apellido"] = ""
 
-        df[
-            "nombre"
-        ] = (
-            df[
-                "nombre"
-            ]
-            .fillna("")
-            .astype(str)
-        )
-
-        df[
-            "apellido"
-        ] = (
-            df[
-                "apellido"
-            ]
-            .fillna("")
-            .astype(str)
-        )
-
-        df[
-            "nombre_completo"
-        ] = (
+        df["nombre"] = (
             df["nombre"]
-            .str.strip()
+            .fillna("")
+            .astype(str)
+        )
+
+        df["apellido"] = (
+            df["apellido"]
+            .fillna("")
+            .astype(str)
+        )
+
+        df["nombre_completo"] = (
+            df["nombre"].str.strip()
             + " "
-            + df["apellido"]
-            .str.strip()
+            + df["apellido"].str.strip()
         ).str.strip()
 
     else:
 
-        df[
-            "nombre_completo"
-        ] = (
-            df[
-                "nombre_completo"
-            ]
+        df["nombre_completo"] = (
+            df["nombre_completo"]
             .fillna("")
             .astype(str)
             .str.strip()
         )
-
-
-    # ========================================================
-    # TIPO DE POSTULANTE
-    # ========================================================
-
-    if "tipo_postulante" in df.columns:
-
-        df[
-            "tipo_postulante_dashboard"
-        ] = (
-            df[
-                "tipo_postulante"
-            ]
-            .fillna(
-                "No especificado"
-            )
-            .astype(str)
-            .str.strip()
-        )
-
-    else:
-
-        df[
-            "tipo_postulante_dashboard"
-        ] = "No especificado"
-
-
-    # ========================================================
-    # NORMALIZAR TIPO
-    # ========================================================
-
-    def normalizar_tipo(valor):
-
-        texto = (
-            str(valor)
-            .strip()
-            .lower()
-        )
-
-        if texto in [
-            "estudiante",
-            "estudiantes"
-        ]:
-
-            return "Estudiante"
-
-        if texto in [
-            "practicante",
-            "practicantes",
-            "prácticante",
-            "prácticantes"
-        ]:
-
-            return "Practicante"
-
-        if texto in [
-            "egresado",
-            "egresados"
-        ]:
-
-            return "Egresado"
-
-        if texto in [
-            "profesional",
-            "profesionales"
-        ]:
-
-            return "Profesional"
-
-        return "No especificado"
-
-
-    df[
-        "tipo_postulante_dashboard"
-    ] = (
-        df[
-            "tipo_postulante_dashboard"
-        ]
-        .apply(normalizar_tipo)
-    )
 
 
     # ========================================================
@@ -1067,58 +955,39 @@ def cargar_datos():
     # ========================================================
 
     columnas_numericas = [
-
         "cantidad_formaciones",
         "cantidad_experiencias",
-
         "meses_experiencia",
         "años_experiencia",
-
         "cantidad_habilidades",
         "cantidad_hard_skills",
         "cantidad_soft_skills",
-
         "cantidad_idiomas",
-
         "cantidad_postulaciones",
-
         "postulaciones_pendientes",
         "postulaciones_revision",
         "postulaciones_aceptadas",
         "postulaciones_rechazadas",
-
         "cantidad_cursos",
-
         "cantidad_conversaciones",
         "cantidad_mensajes_ia",
-
         "cantidad_eventos",
-
         "cantidad_analisis_compatibilidad",
         "score_compatibilidad_promedio",
         "ultimo_score_compatibilidad",
-
         "creditos_disponibles",
         "creditos_utilizados",
         "cantidad_operaciones_creditos",
-
         "creditos_funcionalidad_mas_usada",
-
         "perfil_completado_pct"
-
     ]
-
 
     for columna in columnas_numericas:
 
         if columna in df.columns:
 
-            df[
-                columna
-            ] = pd.to_numeric(
-                df[
-                    columna
-                ],
+            df[columna] = pd.to_numeric(
+                df[columna],
                 errors="coerce"
             ).fillna(0)
 
@@ -1129,12 +998,8 @@ def cargar_datos():
 
     if "score_empleabilidad" in df.columns:
 
-        df[
-            "score_empleabilidad"
-        ] = pd.to_numeric(
-            df[
-                "score_empleabilidad"
-            ],
+        df["score_empleabilidad"] = pd.to_numeric(
+            df["score_empleabilidad"],
             errors="coerce"
         )
 
@@ -1144,25 +1009,41 @@ def cargar_datos():
     # ========================================================
 
     columnas_booleanas = [
-
         "tiene_cv",
         "tiene_postulaciones",
         "uso_ia",
         "participo_evento",
         "tiene_experiencia",
         "perfil_completo"
-
     ]
-
 
     for columna in columnas_booleanas:
 
         if columna in df.columns:
 
-            df[columna] = (
-                df[columna]
-                .apply(obtener_booleano)
+            df[columna] = df[columna].apply(
+                obtener_booleano
             )
+
+
+    # ========================================================
+    # ASEGURAR COLUMNAS NECESARIAS
+    # ========================================================
+
+    if "tipo_postulante" not in df.columns:
+        df["tipo_postulante"] = "No especificado"
+
+    if "profesion" not in df.columns:
+        df["profesion"] = None
+
+    if "nivel_educativo" not in df.columns:
+        df["nivel_educativo"] = None
+
+    if "formaciones_detalle" not in df.columns:
+        df["formaciones_detalle"] = None
+
+    if "meses_experiencia" not in df.columns:
+        df["meses_experiencia"] = 0
 
 
     # ========================================================
@@ -1172,9 +1053,7 @@ def cargar_datos():
     if "_id_postulante" in df.columns:
 
         df = df.drop_duplicates(
-            subset=[
-                "_id_postulante"
-            ],
+            subset=["_id_postulante"],
             keep="first"
         )
 
@@ -1184,9 +1063,7 @@ def cargar_datos():
     # ========================================================
 
     df = df.sort_values(
-        by=[
-            "nombre_completo"
-        ],
+        by=["nombre_completo"],
         ascending=True
     )
 
@@ -1203,6 +1080,622 @@ df = cargar_datos()
 
 if df.empty:
     st.stop()
+
+
+# ============================================================
+# NORMALIZACIÓN ACADÉMICA
+# ============================================================
+
+def limpiar_texto_academico(valor):
+
+    if valor is None:
+        return ""
+
+    try:
+        if pd.isna(valor):
+            return ""
+    except Exception:
+        pass
+
+    texto = str(valor).strip().lower()
+
+    if texto in ["", "none", "nan", "null"]:
+        return ""
+
+    texto = unicodedata.normalize(
+        "NFKD",
+        texto
+    )
+
+    texto = "".join(
+        caracter
+        for caracter in texto
+        if not unicodedata.combining(caracter)
+    )
+
+    texto = re.sub(
+        r"\s+",
+        " ",
+        texto
+    )
+
+    return texto.strip()
+
+
+# ============================================================
+# CATÁLOGO DE CARRERAS
+# ============================================================
+
+CARRERAS = [
+
+    (
+        "Ingeniería de Sistemas e Informática",
+        [
+            "ingenieria de sistemas e informatica",
+            "ingenieria de sistemas y informatica",
+            "sistemas e informatica",
+            "sistemas y informatica"
+        ]
+    ),
+
+    (
+        "Ingeniería de Software",
+        [
+            "ingenieria de software",
+            "ingeniero de software",
+            "ingeniera de software"
+        ]
+    ),
+
+    (
+        "Diseño y Desarrollo de Software",
+        [
+            "diseno y desarrollo de software"
+        ]
+    ),
+
+    (
+        "Ingeniería Informática",
+        [
+            "ingenieria informatica",
+            "ingeniero informatico",
+            "ingeniera informatica"
+        ]
+    ),
+
+    (
+        "Computación e Informática",
+        [
+            "computacion e informatica",
+            "computacion y informatica"
+        ]
+    ),
+
+    (
+        "Ingeniería de Sistemas",
+        [
+            "ingenieria de sistemas",
+            "ingeniero de sistemas",
+            "ingeniera de sistemas"
+        ]
+    ),
+
+    (
+        "Ingeniería Industrial",
+        [
+            "ingenieria industrial",
+            "ingeniero industrial",
+            "ingeniera industrial",
+            "ing industrial"
+        ]
+    ),
+
+    (
+        "Ingeniería Ambiental",
+        [
+            "ingenieria ambiental",
+            "ingeniero ambiental",
+            "ingeniera ambiental"
+        ]
+    ),
+
+    (
+        "Ingeniería Civil",
+        [
+            "ingenieria civil",
+            "ingeniero civil",
+            "ingeniera civil"
+        ]
+    ),
+
+    (
+        "Ingeniería Mecatrónica",
+        [
+            "ingenieria mecatronica",
+            "ingeniero mecatronico",
+            "ingeniera mecatronica"
+        ]
+    ),
+
+    (
+        "Ingeniería Mecánica",
+        [
+            "ingenieria mecanica",
+            "ingeniero mecanico",
+            "ingeniera mecanica"
+        ]
+    ),
+
+    (
+        "Ingeniería Electrónica",
+        [
+            "ingenieria electronica",
+            "ingeniero electronico",
+            "ingeniera electronica"
+        ]
+    ),
+
+    (
+        "Ingeniería de Telecomunicaciones",
+        [
+            "ingenieria de telecomunicaciones",
+            "telecomunicaciones"
+        ]
+    ),
+
+    (
+        "Ingeniería Química",
+        [
+            "ingenieria quimica",
+            "ingeniero quimico",
+            "ingeniera quimica"
+        ]
+    ),
+
+
+    (
+        "Ingeniería Agroindustrial",
+        [
+            "ingenieria agroindustrial"
+        ]
+    ),
+
+    (
+        "Ingeniería Agronómica",
+        [
+            "ingenieria agronomica"
+        ]
+    ),
+
+    (
+        "Ingeniería Geológica",
+        [
+            "ingenieria geologica"
+        ]
+    ),
+
+    (
+        "Ingeniería Aeroespacial",
+        [
+            "ingenieria aeroespacial"
+        ]
+    ),
+
+    (
+        "Ingeniería Económica y de Negocios",
+        [
+            "ingenieria economica y de negocios"
+        ]
+    ),
+
+    (
+        "Ingeniería Económica",
+        [
+            "ingenieria economica"
+        ]
+    ),
+
+    (
+        "Ingeniería de Higiene y Seguridad Industrial",
+        [
+            "ingenieria de higiene y seguridad industrial",
+            "higiene y seguridad industrial"
+        ]
+    ),
+
+    (
+        "Administración y Finanzas",
+        [
+            "administracion y finanzas"
+        ]
+    ),
+
+    (
+        "Psicología Organizacional",
+        [
+            "psicologia organizacional"
+        ]
+    ),
+
+    (
+        "Comunicación Social",
+        [
+            "comunicacion social"
+        ]
+    ),
+
+    (
+        "Comunicación y Publicidad",
+        [
+            "comunicacion y publicidad"
+        ]
+    ),
+
+    (
+        "Gestión y Alta Dirección",
+        [
+            "gestion y alta direccion"
+        ]
+    ),
+
+    (
+        "Ciencias Biológicas",
+        [
+            "ciencias biologicas"
+        ]
+    ),
+
+    (
+        "Diseño Industrial",
+        [
+            "diseno industrial"
+        ]
+    ),
+
+    (
+        "Administración y Marketing",
+        [
+            "administracion y marketing",
+            "marketing y administracion"
+        ]
+    ),
+
+    (
+        "Administración y Negocios Internacionales",
+        [
+            "administracion y negocios internacionales",
+            "administracion de negocios internacionales"
+        ]
+    ),
+
+    (
+        "Administración de Empresas",
+        [
+            "administracion de empresas"
+        ]
+    ),
+
+    (
+        "Administración",
+        [
+            "administracion"
+        ]
+    ),
+
+    (
+        "Negocios Internacionales",
+        [
+            "negocios internacionales"
+        ]
+    ),
+
+    (
+        "Marketing",
+        [
+            "marketing"
+        ]
+    ),
+
+    (
+        "Economía",
+        [
+            "economia"
+        ]
+    ),
+
+    (
+        "Contabilidad",
+        [
+            "contabilidad"
+        ]
+    ),
+
+    (
+        "Psicología",
+        [
+            "psicologia",
+            "psicologo",
+            "psicologa"
+        ]
+    ),
+
+    (
+        "Derecho",
+        [
+            "derecho",
+            "abogado",
+            "abogada"
+        ]
+    ),
+
+    (
+        "Arquitectura",
+        [
+            "arquitectura"
+        ]
+    ),
+
+    (
+        "Medicina Humana",
+        [
+            "medicina humana"
+        ]
+    ),
+
+    (
+        "Publicidad",
+        [
+            "publicidad"
+        ]
+    ),
+
+    (
+        "Comunicación Audiovisual",
+        [
+            "comunicacion audiovisual"
+        ]
+    ),
+
+    (
+        "Ciencias de la Comunicación",
+        [
+            "ciencias de la comunicacion"
+        ]
+    )
+]
+
+
+# ============================================================
+# DETECTAR CARRERA
+# ============================================================
+
+def detectar_carrera_texto(valor):
+
+    texto = limpiar_texto_academico(
+        valor
+    )
+
+    if not texto:
+        return None
+
+    valores_genericos = [
+        "estudiante",
+        "profesional",
+        "practicante",
+        "egresado",
+        "egresada",
+        "bachiller",
+        "other",
+        "primaria",
+        "secundaria",
+        "certificate",
+        "certificado"
+    ]
+
+    if texto in valores_genericos:
+        return None
+
+    for carrera, variantes in CARRERAS:
+
+        for variante in variantes:
+
+            if (
+                limpiar_texto_academico(
+                    variante
+                )
+                in texto
+            ):
+
+                return carrera
+
+    return None
+
+
+# ============================================================
+# OBTENER CARRERA
+# ============================================================
+
+def obtener_carrera_dashboard(registro):
+
+    nivel = registro.get(
+        "nivel_educativo"
+    )
+
+    if nivel is not None:
+
+        partes = str(nivel).split("|")
+
+        for parte in partes:
+
+            carrera = detectar_carrera_texto(
+                parte
+            )
+
+            if carrera:
+                return carrera
+
+
+    carrera = detectar_carrera_texto(
+        registro.get(
+            "profesion"
+        )
+    )
+
+    if carrera:
+        return carrera
+
+
+    carrera = detectar_carrera_texto(
+        registro.get(
+            "formaciones_detalle"
+        )
+    )
+
+    if carrera:
+        return carrera
+
+
+    return "No especificada"
+
+
+# ============================================================
+# OBTENER TIPO DE POSTULANTE
+# ============================================================
+
+def obtener_tipo_dashboard(registro):
+
+    profesion = limpiar_texto_academico(
+        registro.get(
+            "profesion"
+        )
+    )
+
+    nivel = limpiar_texto_academico(
+        registro.get(
+            "nivel_educativo"
+        )
+    )
+
+    formacion = limpiar_texto_academico(
+        registro.get(
+            "formaciones_detalle"
+        )
+    )
+
+    tipo_original = limpiar_texto_academico(
+        registro.get(
+            "tipo_postulante"
+        )
+    )
+
+
+    # PRACTICANTE
+
+    if (
+        "practicante" in profesion
+        or
+        "practicante" in nivel
+    ):
+
+        return "Practicante"
+
+
+    # ESTUDIANTE
+
+    if (
+        "estudiante" in profesion
+        or
+        "estudiante" in nivel
+    ):
+
+        return "Estudiante"
+
+
+    if (
+        "student" in formacion
+        and
+        "bachelor" not in formacion
+    ):
+
+        return "Estudiante"
+
+
+    # EGRESADO
+
+    indicadores_egresado = [
+        "egresado",
+        "egresada",
+        "bachiller",
+        "graduado",
+        "graduada"
+    ]
+
+    if any(
+        palabra in profesion
+        for palabra in indicadores_egresado
+    ):
+
+        return "Egresado"
+
+
+    if any(
+        palabra in nivel
+        for palabra in indicadores_egresado
+    ):
+
+        return "Egresado"
+
+
+    # PROFESIONAL
+
+    indicadores_profesional = [
+        "ingeniero",
+        "ingeniera",
+        "psicologo",
+        "psicologa",
+        "economista",
+        "administrador",
+        "administradora",
+        "arquitecto",
+        "arquitecta",
+        "abogado",
+        "abogada"
+    ]
+
+    if any(
+        palabra in profesion
+        for palabra in indicadores_profesional
+    ):
+
+        return "Profesional"
+
+
+    if tipo_original == "profesional":
+
+        return "Profesional"
+
+
+    return "No especificado"
+
+
+# ============================================================
+# CREAR COLUMNAS NORMALIZADAS
+# ============================================================
+
+df[
+    "carrera_dashboard"
+] = df.apply(
+    obtener_carrera_dashboard,
+    axis=1
+)
+
+df[
+    "tipo_postulante_dashboard"
+] = df.apply(
+    obtener_tipo_dashboard,
+    axis=1
+)
+
 
 
 # ============================================================
@@ -1250,6 +1743,11 @@ if "tipo_filtro" not in st.session_state:
         "tipo_filtro"
     ] = "Todos"
 
+if "carrera_filtro" not in st.session_state:
+
+    st.session_state[
+        "carrera_filtro"
+    ] = "Todas"
 
 if "experiencia_filtro" not in st.session_state:
 
@@ -1298,6 +1796,10 @@ def limpiar_filtros():
     st.session_state[
         "tipo_filtro"
     ] = "Todos"
+
+    st.session_state[
+        "carrera_filtro"
+        ] = "Todas"
 
     st.session_state[
         "experiencia_filtro"
@@ -1358,6 +1860,46 @@ with st.sidebar:
         key="tipo_filtro"
     )
 
+     # ========================================================
+    # CARRERAS DISPONIBLES
+    # ========================================================
+
+    carreras_disponibles = [
+
+        "Todas"
+
+    ] + sorted(
+        [
+            carrera
+            for carrera
+            in df[
+                "carrera_dashboard"
+            ]
+            .dropna()
+            .unique()
+            if carrera != "No especificada"
+        ]
+    )
+
+
+    if (
+        "No especificada"
+        in df[
+            "carrera_dashboard"
+        ].values
+    ):
+
+        carreras_disponibles.append(
+            "No especificada"
+        )
+
+
+    st.selectbox(
+        "Carrera",
+        carreras_disponibles,
+        key="carrera_filtro"
+    )
+        
 
     rangos_experiencia = [
 
@@ -1464,6 +2006,24 @@ if tipo_seleccionado != "Todos":
         == tipo_seleccionado
     ]
 
+# ============================================================
+# FILTRO CARRERA
+# ============================================================
+
+carrera_seleccionada = (
+    st.session_state[
+        "carrera_filtro"
+    ]
+)
+
+if carrera_seleccionada != "Todas":
+
+    df_filtrado = df_filtrado[
+        df_filtrado[
+            "carrera_dashboard"
+        ]
+        == carrera_seleccionada
+    ]
 
 # ============================================================
 # FILTRO EXPERIENCIA
@@ -1836,7 +2396,7 @@ tipo_postulante = obtener_texto(
 
 carrera = obtener_texto(
     postulante.get(
-        "profesion"
+        "carrera_dashboard"
     ),
     "No especificada"
 )
@@ -2575,6 +3135,12 @@ mostrar_seccion(
     "Uso de créditos"
 )
 
+creditos_disponibles = obtener_decimal(
+    postulante.get(
+        "creditos_disponibles"
+    ),
+    0
+)
 
 creditos_utilizados = obtener_decimal(
     postulante.get(
@@ -2583,40 +3149,81 @@ creditos_utilizados = obtener_decimal(
     0
 )
 
-
 cantidad_operaciones_creditos = obtener_entero(
     postulante.get(
         "cantidad_operaciones_creditos"
-    )
+    ),
+    0
 )
 
 
-c1, c2, c3 = st.columns(3)
+# ============================================================
+# CRÉDITOS ACUMULADOS
+# ============================================================
 
+creditos_acumulados = (
+    creditos_disponibles
+    + creditos_utilizados
+)
+
+
+# ============================================================
+# KPIs DE CRÉDITOS
+# ============================================================
+
+c1, c2, c3, c4 = st.columns(4)
 
 with c1:
+    mostrar_kpi(
+        "Créditos acumulados",
+        f"{creditos_acumulados:g}"
+    )
 
+with c2:
     mostrar_kpi(
         "Créditos disponibles",
         f"{creditos_disponibles:g}"
     )
 
-
-with c2:
-
+with c3:
     mostrar_kpi(
         "Créditos utilizados",
         f"{creditos_utilizados:g}"
     )
 
-
-with c3:
-
+with c4:
     mostrar_kpi(
         "Operaciones",
         cantidad_operaciones_creditos
     )
 
+# ============================================================
+# ESTADO DE USO DE CRÉDITOS
+# ============================================================
+
+if creditos_utilizados > 0:
+
+    st.info(
+        f"Este postulante ha utilizado "
+        f"{creditos_utilizados:g} crédito"
+        f"{'s' if creditos_utilizados != 1 else ''} "
+        f"en {cantidad_operaciones_creditos} operación"
+        f"{'es' if cantidad_operaciones_creditos != 1 else ''}."
+    )
+
+elif creditos_disponibles > 0:
+
+    st.info(
+        "Este postulante tiene créditos disponibles, "
+        "pero todavía no registra consumo."
+    )
+
+else:
+
+    st.info(
+        "Este postulante no registra créditos disponibles "
+        "ni consumo de créditos."
+    )
 
 # ============================================================
 # DETALLE DE CRÉDITOS
@@ -2905,6 +3512,9 @@ columnas_tabla = {
 
     "tipo_postulante_dashboard":
         "Tipo",
+
+    "carrera_dashboard":
+        "Carrera",
 
     "cantidad_postulaciones":
         "Postulaciones",
