@@ -67,10 +67,20 @@ st.markdown(
         color: {COLOR_TEXT};
     }}
 
+    /* ========================================================
+      BARRA SUPERIOR DE STREAMLIT
+    ======================================================== */
+
+    header[data-testid="stHeader"] {{
+    background-color: {COLOR_BACKGROUND} !important;
+    box-shadow: none !important;
+    border-bottom: none !important;
+   }}
+
     .main .block-container {{
-        padding-top: 1.5rem;
-        padding-bottom: 2rem;
-        max-width: 1500px;
+    max-width: 1700px;
+    padding-top: 1.15rem;
+    padding-bottom: 3rem;
     }}
 
 
