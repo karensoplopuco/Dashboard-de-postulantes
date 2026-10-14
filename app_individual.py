@@ -8,6 +8,7 @@ import altair as alt
 
 import unicodedata
 import re
+from scripts.conexion import db
 
 
 # ============================================================
@@ -3137,39 +3138,144 @@ mostrar_grafico_enmarcado(
 )
 
 
+
 # ============================================================
 # USO DE CRÉDITOS
+# Fuente: organization_credit_operations
 # ============================================================
+MONGODB_URI="TU_URI_DE_MONGODB"
+MONGODB_DB="laboral-ai-dev"
+SAMPLE_SIZE=5000
 
-mostrar_seccion(
-    "Uso de créditos"
+mostrar_seccion("Uso de créditos")
+
+from bson import ObjectId
+
+# ------------------------------------------------------------
+# IDENTIFICAR AL POSTULANTE SELECCIONADO
+# ------------------------------------------------------------
+
+id_postulante = (
+    postulante.get("_id_postulante")
+    or postulante.get("_id")
+    or postulante.get("userId")
 )
+
+id_postulante = (
+    str(id_postulante).strip()
+    if id_postulante is not None
+    else ""
+)
+
+# ------------------------------------------------------------
+# CARGAR OPERACIONES DEL POSTULANTE
+# ------------------------------------------------------------
+
+@st.cache_data(ttl=300)
+def cargar_operaciones_postulante(id_usuario):
+
+    if not id_usuario:
+        return pd.DataFrame()
+
+    # Consultar por ObjectId y por string para contemplar
+    # ambos formatos de identificador en MongoDB.
+    identificadores = [id_usuario]
+
+    if ObjectId.is_valid(id_usuario):
+        identificadores.append(ObjectId(id_usuario))
+
+    operaciones = list(
+        db["organization_credit_operations"].find(
+            {
+                "userId": {"$in": identificadores}
+            },
+            {
+                "_id": 1,
+                "userId": 1,
+                "event": 1,
+                "credits": 1,
+                "status": 1,
+                "refundedAt": 1,
+                "completedAt": 1
+            }
+        ).limit(SAMPLE_SIZE)
+    )
+
+    return pd.DataFrame(operaciones)
+
+
+df_operaciones_creditos = cargar_operaciones_postulante(
+    id_postulante
+)
+
+# ------------------------------------------------------------
+# PREPARAR LOS DATOS
+# ------------------------------------------------------------
+
+if not df_operaciones_creditos.empty:
+
+    ops = df_operaciones_creditos.copy()
+
+    ops["event"] = (
+        ops["event"]
+        .fillna("Sin especificar")
+        .astype(str)
+        .str.strip()
+    )
+
+    ops["credits"] = pd.to_numeric(
+        ops["credits"],
+        errors="coerce"
+    ).fillna(0)
+
+    # Contar únicamente operaciones completadas.
+    if "status" in ops.columns:
+        ops["status_normalizado"] = (
+            ops["status"]
+            .fillna("")
+            .astype(str)
+            .str.lower()
+            .str.strip()
+        )
+
+        ops_completadas = ops[
+            ops["status_normalizado"].eq("completed")
+        ].copy()
+    else:
+        ops_completadas = ops.iloc[0:0].copy()
+
+    # No contabilizar operaciones reembolsadas como consumo neto.
+    if "refundedAt" in ops_completadas.columns:
+        ops_completadas = ops_completadas[
+            ops_completadas["refundedAt"].isna()
+        ].copy()
+
+    creditos_utilizados = float(
+        ops_completadas["credits"].clip(lower=0).sum()
+    )
+
+    cantidad_operaciones_creditos = len(
+        ops_completadas
+    )
+
+else:
+
+    ops = pd.DataFrame()
+    ops_completadas = pd.DataFrame()
+
+    creditos_utilizados = 0
+    cantidad_operaciones_creditos = 0
+
+
+# ------------------------------------------------------------
+# CRÉDITOS DISPONIBLES
+# Se conserva el dato existente del postulante.
+# ------------------------------------------------------------
 
 creditos_disponibles = obtener_decimal(
-    postulante.get(
-        "creditos_disponibles"
-    ),
+    postulante.get("creditos_disponibles"),
     0
 )
-
-creditos_utilizados = obtener_decimal(
-    postulante.get(
-        "creditos_utilizados"
-    ),
-    0
-)
-
-cantidad_operaciones_creditos = obtener_entero(
-    postulante.get(
-        "cantidad_operaciones_creditos"
-    ),
-    0
-)
-
-
-# ============================================================
-# CRÉDITOS ACUMULADOS
-# ============================================================
 
 creditos_acumulados = (
     creditos_disponibles
@@ -3203,9 +3309,10 @@ with c3:
 
 with c4:
     mostrar_kpi(
-        "Operaciones",
+        "Operaciones completadas",
         cantidad_operaciones_creditos
     )
+
 
 # ============================================================
 # ESTADO DE USO DE CRÉDITOS
@@ -3218,247 +3325,136 @@ if creditos_utilizados > 0:
         f"{creditos_utilizados:g} crédito"
         f"{'s' if creditos_utilizados != 1 else ''} "
         f"en {cantidad_operaciones_creditos} operación"
-        f"{'es' if cantidad_operaciones_creditos != 1 else ''}."
+        f"{'es' if cantidad_operaciones_creditos != 1 else ''} "
+        "completada(s) y no reembolsada(s)."
+    )
+
+elif cantidad_operaciones_creditos > 0:
+
+    st.info(
+        "El postulante registra operaciones completadas, "
+        "pero no presenta consumo neto de créditos."
+    )
+
+elif not df_operaciones_creditos.empty:
+
+    st.info(
+        "Existen operaciones registradas, pero ninguna "
+        "cumple los criterios de operación completada "
+        "y no reembolsada."
     )
 
 elif creditos_disponibles > 0:
 
     st.info(
         "Este postulante tiene créditos disponibles, "
-        "pero todavía no registra consumo."
+        "pero no registra operaciones de crédito."
     )
 
 else:
 
     st.info(
         "Este postulante no registra créditos disponibles "
-        "ni consumo de créditos."
-    )
-
-# ============================================================
-# DETALLE DE CRÉDITOS
-# ============================================================
-
-detalle_creditos = obtener_texto(
-    postulante.get(
-        "uso_creditos_detalle"
-    ),
-    ""
-)
-
-
-datos_creditos = []
-
-
-if detalle_creditos:
-
-    try:
-
-        contenido = json.loads(
-            detalle_creditos
-        )
-
-        if isinstance(
-            contenido,
-            list
-        ):
-
-            datos_creditos = contenido
-
-        elif isinstance(
-            contenido,
-            dict
-        ):
-
-            datos_creditos = [
-                contenido
-            ]
-
-    except Exception:
-
-        datos_creditos = []
-
-
-if datos_creditos:
-
-    creditos_df = pd.DataFrame(
-        datos_creditos
+        "ni operaciones de crédito."
     )
 
 
-    columna_funcionalidad = None
+# ============================================================
+# GRÁFICO: CRÉDITOS UTILIZADOS POR FUNCIONALIDAD
+# ============================================================
 
+st.markdown("**Consumo de créditos por funcionalidad**")
 
-    for columna in [
+if not ops_completadas.empty:
 
-        "funcionalidad",
-        "functionality",
-        "nombre",
-        "name",
-        "evento",
-        "eventName"
-
-    ]:
-
-        if columna in creditos_df.columns:
-
-            columna_funcionalidad = columna
-
-            break
-
-
-    columna_creditos = None
-
-
-    for columna in [
-
-        "creditos",
-        "credits",
-        "totalCreditos",
-        "total_credits",
-        "cantidad_creditos"
-
-    ]:
-
-        if columna in creditos_df.columns:
-
-            columna_creditos = columna
-
-            break
-
-
-    if (
-        columna_funcionalidad
-        and
-        columna_creditos
-    ):
-
-        creditos_df = creditos_df.rename(
-            columns={
-
-                columna_funcionalidad:
-                    "funcionalidad",
-
-                columna_creditos:
-                    "creditos"
-
-            }
+    creditos_df = (
+        ops_completadas
+        .groupby("event", as_index=False)
+        .agg(
+            creditos=("credits", lambda s: s.clip(lower=0).sum()),
+            operaciones=("event", "size")
         )
-
-
-        creditos_df[
-            "creditos"
-        ] = pd.to_numeric(
-            creditos_df[
-                "creditos"
-            ],
-            errors="coerce"
-        ).fillna(0)
-
-
-        creditos_df = (
-            creditos_df
-            .groupby(
-                "funcionalidad",
-                as_index=False
-            )[
-                "creditos"
-            ]
-            .sum()
-            .sort_values(
-                "creditos",
-                ascending=False
-            )
+        .rename(
+            columns={"event": "funcionalidad"}
         )
+        .sort_values(
+            "creditos",
+            ascending=False
+        )
+    )
 
+    creditos_df = creditos_df[
+        creditos_df["creditos"] > 0
+    ].copy()
 
-        # ====================================================
-        # GRÁFICO DE CRÉDITOS
-        # ====================================================
+    if not creditos_df.empty:
 
         chart_creditos = (
-
-            alt.Chart(
-                creditos_df
-            )
-
+            alt.Chart(creditos_df)
             .mark_bar(
                 color=COLOR_ORANGE,
                 cornerRadiusTopLeft=5,
                 cornerRadiusTopRight=5
             )
-
             .encode(
-
                 x=alt.X(
                     "funcionalidad:N",
                     title=None,
                     sort="-y",
-                    axis=alt.Axis(
-                        labelAngle=-30
-                    )
+                    axis=alt.Axis(labelAngle=-30)
                 ),
-
                 y=alt.Y(
                     "creditos:Q",
                     title="Créditos utilizados",
-                    scale=alt.Scale(
-                        domainMin=0
-                    ),
-                    axis=alt.Axis(
-                        tickMinStep=1,
-                        format="d"
-                    )
+                    scale=alt.Scale(domainMin=0),
+                    axis=alt.Axis(tickMinStep=1)
                 ),
-
                 tooltip=[
-
                     alt.Tooltip(
                         "funcionalidad:N",
                         title="Funcionalidad"
                     ),
-
                     alt.Tooltip(
                         "creditos:Q",
-                        title="Créditos"
+                        title="Créditos utilizados"
+                    ),
+                    alt.Tooltip(
+                        "operaciones:Q",
+                        title="Operaciones completadas"
                     )
-
                 ]
-
             )
-
-            .properties(
-                height=320
-            )
-
+            .properties(height=320)
             .configure(
                 background="transparent",
                 padding=0
             )
-
-            .configure_view(
-                stroke=None
-            )
+            .configure_view(stroke=None)
         )
-
 
         mostrar_grafico_enmarcado(
             chart_creditos,
             "grafico_creditos"
         )
 
+        st.dataframe(
+            creditos_df,
+            use_container_width=True,
+            hide_index=True
+        )
 
     else:
 
         st.info(
-            "No hay suficiente detalle para generar el gráfico de créditos."
+            "No se registran créditos consumidos "
+            "en las operaciones completadas."
         )
-
 
 else:
 
     st.info(
-        "Este postulante no registra uso de créditos."
+        "No hay operaciones completadas para mostrar "
+        "el consumo de créditos por funcionalidad."
     )
 
 

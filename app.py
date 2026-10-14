@@ -4,6 +4,7 @@ import plotly.express as px
 from pathlib import Path
 import os
 import inspect
+from scripts.conexion import db
 
 # ============================================================
 # CONFIGURACIÓN
@@ -125,6 +126,7 @@ COLORS = {
     "azul_evolucion": "#323f83",
     "azul_chatbot": "#70afe2",
     "azul_secundario": "#a7bddc",
+    "azul_grafico_ikigai": "#A2B9EE",
 
     # ========================================================
     # VERDES Y TURQUESA
@@ -189,6 +191,14 @@ COLORS = {
     "gris": "#E9EEF5",
     "gris_medio": "#D5DCE8",
     "gris_claro": "#F3F5F8",
+}
+
+COLORES_IKIGAI = {
+"estado": "#A2B9EE",
+"habilidades": "#ffbd59",
+"claridad": "#addfcd",
+"perfil": "#7FB3D5",
+"evolucion": "#7FB3D5"
 }
 
 
@@ -1418,18 +1428,13 @@ quizzes = (
 usuarios_activos = 0
 
 if "isActive" in df.columns:
-
-    usuarios_activos = (
+    usuarios_activos = int(
         df["isActive"]
-        .astype(str)
+        .astype("string")
         .str.strip()
         .str.lower()
         .isin(["true", "1"])
         .sum()
-    )
-
-    usuarios_activos = int(
-        usuarios_activos
     )
 
 
@@ -2354,7 +2359,7 @@ with col_cursos:
             font-weight:600;
             margin-bottom:8px;
         ">
-            Interés en cursos
+             Actividades registradas por categoría
         </p>
         """,
         unsafe_allow_html=True
@@ -2364,7 +2369,7 @@ with col_cursos:
     # COPIA PARA FILTROS
     # --------------------------------------------------------
 
-    cursos_filtrados = df_cursos_interes.copy()
+    actividades_filtradas = df_cursos_interes.copy()
 
     # --------------------------------------------------------
     # FILTRO AÑO
@@ -2372,8 +2377,8 @@ with col_cursos:
 
     if año != "Todos":
 
-        cursos_filtrados = cursos_filtrados[
-            cursos_filtrados["año"].eq(int(año))
+        actividades_filtradas = actividades_filtradas[
+            actividades_filtradas["año"].eq(int(año))
         ]
 
     # --------------------------------------------------------
@@ -2382,19 +2387,48 @@ with col_cursos:
 
     if area != "Todas":
 
-        cursos_filtrados = cursos_filtrados[
-            cursos_filtrados["area_profesional"].eq(area)
+        actividades_filtradas = actividades_filtradas[
+            actividades_filtradas["area_profesional"].eq(area)
         ]
+
+    # --------------------------------------------------------
+    # LIMPIEZA Y NORMALIZACIÓN DE CATEGORÍAS
+    # --------------------------------------------------------
+    if not actividades_filtradas.empty:
+        
+        actividades_filtradas["categoria_curso"] = (
+            actividades_filtradas["categoria_curso"]
+            .astype("string")
+            .str.strip()
+        )
+
+        actividades_filtradas = actividades_filtradas[
+            actividades_filtradas["categoria_curso"].notna()
+            & (actividades_filtradas["categoria_curso"] != "")
+        ].copy()
+
+        # Unificar variantes de Webinar
+        actividades_filtradas["categoria_curso"] = (
+            actividades_filtradas["categoria_curso"]
+            .replace(
+                {
+                    r"(?i)^webinars?$": "Webinar"
+                },
+                regex=True  
+            )
+        )
+
+
 
     # --------------------------------------------------------
     # GRÁFICO POR CATEGORÍA
     # --------------------------------------------------------
 
-    if not cursos_filtrados.empty:
+    if not actividades_filtradas.empty:
 
         categorias_grafico = (
-            cursos_filtrados[
-                cursos_filtrados["categoria_curso"].notna()
+            actividades_filtradas[
+                actividades_filtradas["categoria_curso"].notna()
             ]
             .groupby("categoria_curso")["_id_postulante"]
             .nunique()
@@ -2437,552 +2471,786 @@ with col_cursos:
         )
 
 
+
 # ============================================================
-# QUIZZES
+# IKIGAI
 # ============================================================
 
 st.markdown(
-    '<div class="section-title">Quizzes</div>',
+    '<div class="section-title">Ikigai</div>',
     unsafe_allow_html=True
 )
 
+# ============================================================
+# CARGAR COLECCIONES DESDE MONGODB
+# Reutilizar la variable db existente
+# ============================================================
 
 # ============================================================
-# VALIDAR DATA DE QUIZZES
+# CARGAR COLECCIONES DE IKIGAI DESDE MONGODB
+# ============================================================
+MONGODB_URI="TU_URI_DE_MONGODB"
+MONGODB_DB="laboral-ai-dev"
+SAMPLE_SIZE=5000
+
+# ============================================================
+# CARGAR COLECCIONES DESDE MONGODB
+# Utiliza la conexión existente del proyecto
 # ============================================================
 
-if df_quizzes.empty:
+@st.cache_data(ttl=300)
+def cargar_ikigai():
+    sample_size = int(os.getenv("SAMPLE_SIZE", "5000"))
 
-    st.info(
-        "No hay información disponible sobre quizzes."
+    datos = list(
+        db["userikigaidatas"]
+        .find()
+        .limit(sample_size)
     )
+
+    perfiles = list(
+        db["ikigairesults"]
+        .find()
+        .limit(sample_size)
+    )
+
+    # Convertir datos y desplegar campos anidados del perfil
+    df_datos = pd.DataFrame(datos)
+
+    df_perfiles = pd.json_normalize(
+        perfiles,
+        sep="."
+    )
+
+    return df_datos, df_perfiles
+
+
+df_userikigaidatas, df_ikigairesults = cargar_ikigai()
+
+
+# ============================================================
+# FUNCIONES AUXILIARES
+# ============================================================
+
+def normalizar_id_ikigai(valor):
+    """Convierte identificadores a texto comparable."""
+
+    if valor is None:
+        return ""
+
+    if isinstance(valor, dict):
+        valor = valor.get("$oid", valor.get("_id", valor))
+
+    return str(valor).strip()
+
+
+def normalizar_habilidad(valor):
+    """Normaliza texto para reconocer habilidades repetidas."""
+
+    texto = str(valor).strip().casefold()
+
+    texto = unicodedata.normalize("NFKD", texto)
+    texto = "".join(
+        caracter
+        for caracter in texto
+        if not unicodedata.combining(caracter)
+    )
+
+    return " ".join(texto.split())
+
+
+def separar_respuestas(valor):
+    """Admite listas, textos separados por comas y valores simples."""
+
+    if valor is None:
+        return []
+
+    if isinstance(valor, (list, tuple, set)):
+        elementos = []
+
+        for elemento in valor:
+            elementos.extend(separar_respuestas(elemento))
+
+        return elementos
+
+    if isinstance(valor, dict):
+        return list(
+            dict.fromkeys(
+                str(v).strip()
+                for v in valor.values()
+                if v is not None and str(v).strip()
+            )
+        )
+
+    texto = str(valor).strip()
+
+    if not texto or texto.lower() in {
+        "nan", "none", "null", "[]", "{}"
+    }:
+        return []
+
+    return [
+        elemento.strip().strip('"').strip("'")
+        for elemento in texto.split(",")
+        if elemento.strip().strip('"').strip("'")
+    ]
+
+
+# ============================================================
+# VALIDAR Y PREPARAR LOS DATOS
+# ============================================================
+
+if df_userikigaidatas.empty:
+
+    st.info("No hay información disponible sobre Ikigai.")
 
 else:
 
-    # ========================================================
-    # COLUMNAS NECESARIAS
-    # ========================================================
+    ikigai = df_userikigaidatas.copy()
 
-    columnas_necesarias = [
-        "_id_user",
-        "quiz_id",
-        "quiz_key",
-        "quiz_nombre",
-        "estado"
-    ]
+    columnas_necesarias = ["user", "completed"]
 
-    columnas_faltantes = [
+    faltantes = [
         columna
         for columna in columnas_necesarias
-        if columna not in df_quizzes.columns
+        if columna not in ikigai.columns
     ]
 
-
-    if columnas_faltantes:
+    if faltantes:
 
         st.warning(
-            "Faltan columnas en quizzes_detalle_usuarios.csv: "
-            + ", ".join(columnas_faltantes)
+            "Faltan columnas en userikigaidatas: "
+            + ", ".join(faltantes)
         )
 
     else:
 
-        # ====================================================
-        # LIMPIAR DATOS
-        # ====================================================
+        # ----------------------------------------------------
+        # NORMALIZAR IDENTIFICADORES
+        # ----------------------------------------------------
 
-        for columna in columnas_necesarias:
-
-            df_quizzes[columna] = (
-                df_quizzes[columna]
-                .astype("string")
-                .str.strip()
-            )
-
-
-        # ====================================================
-        # NORMALIZAR ESTADOS
-        # ====================================================
-
-        df_quizzes["estado"] = (
-            df_quizzes["estado"]
-            .str.lower()
-            .str.strip()
-            .replace({
-                "iniciado": "Iniciado",
-                "en proceso": "En proceso",
-                "completado": "Completado"
-            })
+        ikigai["user"] = ikigai["user"].apply(
+            normalizar_id_ikigai
         )
 
-
-        # ====================================================
-        # ELIMINAR REGISTROS SIN USUARIO
-        # ====================================================
-
-        df_quizzes = df_quizzes[
-            df_quizzes["_id_user"].notna()
-            & (df_quizzes["_id_user"] != "")
+        ikigai = ikigai[
+            ikigai["user"].ne("")
         ].copy()
 
+        # ----------------------------------------------------
+        # NORMALIZAR ESTADO DE COMPLETITUD
+        # ----------------------------------------------------
+
+        ikigai["completado"] = (
+            ikigai["completed"]
+            .astype(str)
+            .str.lower()
+            .str.strip()
+            .isin(["true", "1", "yes", "si", "sí"])
+        )
+
+        # ----------------------------------------------------
+        # CONSERVAR EL REGISTRO MÁS RECIENTE POR USUARIO
+        # ----------------------------------------------------
+
+        columna_fecha = next(
+            (
+                columna
+                for columna in [
+                    "updatedAt",
+                    "createdAt"
+                ]
+                if columna in ikigai.columns
+            ),
+            None
+        )
+
+        if columna_fecha:
+
+            ikigai[columna_fecha] = pd.to_datetime(
+                ikigai[columna_fecha],
+                errors="coerce",
+                utc=True
+            )
+
+            ikigai = ikigai.sort_values(
+                columna_fecha,
+                na_position="first"
+            )
+
+        ikigai = ikigai.drop_duplicates(
+            subset=["user"],
+            keep="last"
+        )
 
         # ====================================================
-        # FILTROS PRINCIPALES
+        # FILTROS EXISTENTES: AÑO Y CARRERA / ÁREA
         # ====================================================
 
-        quizzes_filtrados = df_quizzes.copy()
+        ikigai_filtrado = ikigai.copy()
 
-
-        # ====================================================
-        # FILTRO POR AÑO
-        # ====================================================
-
+        # Filtro por año: utiliza el filtro existente del dashboard
         if año != "Todos":
 
             ids_año = (
-                df_dashboard[
-                    df_dashboard["año"].eq(int(año))
-                ]["_id_postulante"]
-                .astype("string")
-                .str.strip()
-                .unique()
+                df_dashboard.loc[
+                    df_dashboard["año"].eq(int(año)),
+                    "_id_postulante"
+                ]
+                .apply(normalizar_id_ikigai)
             )
 
-            quizzes_filtrados = quizzes_filtrados[
-                quizzes_filtrados["_id_user"].isin(ids_año)
+            ikigai_filtrado = ikigai_filtrado[
+                ikigai_filtrado["user"].isin(ids_año)
             ]
 
-
-        # ====================================================
-        # FILTRO POR ÁREA PROFESIONAL
-        # ====================================================
-
+        # Filtro por carrera/área: utiliza el filtro existente
         if area != "Todas":
 
             ids_area = (
-                df_dashboard[
-                    df_dashboard["area_profesional"].eq(area)
-                ]["_id_postulante"]
-                .astype("string")
-                .str.strip()
-                .unique()
+                df_dashboard.loc[
+                    df_dashboard["area_profesional"].eq(area),
+                    "_id_postulante"
+                ]
+                .apply(normalizar_id_ikigai)
             )
 
-            quizzes_filtrados = quizzes_filtrados[
-                quizzes_filtrados["_id_user"].isin(ids_area)
+            ikigai_filtrado = ikigai_filtrado[
+                ikigai_filtrado["user"].isin(ids_area)
             ]
 
-
         # ====================================================
-        # CONTENEDORES
+        # MÉTRICAS GENERALES
         # ====================================================
 
-        izquierda, derecha = st.columns(
-            [1.15, 1]
+        st.markdown("### Estado de las evaluaciones de Ikigai")
+
+        usuarios_registrados = (
+            ikigai_filtrado["user"].nunique()
         )
 
+        completaron = (
+            ikigai_filtrado.loc[
+                ikigai_filtrado["completado"],
+                "user"
+            ].nunique()
+        )
 
-        # ====================================================
-        # IZQUIERDA
-        # COMPLETACIÓN POR QUIZ
-        # ====================================================
+        pendientes = max(
+            usuarios_registrados - completaron,
+            0
+        )
 
-        with izquierda:
+        porcentaje_completitud = (
+            completaron / usuarios_registrados * 100
+            if usuarios_registrados > 0
+            else 0
+        )
 
-            st.markdown(
-                """
-                <p style="
-                    font-size:16px;
-                    font-weight:600;
-                    margin-bottom:12px;
-                ">
-                    Completación por quiz
-                </p>
-                """,
-                unsafe_allow_html=True
+        m1, m2, m3, m4 = st.columns(4)
+
+        m1.metric(
+            "Con registro",
+            f"{usuarios_registrados:,}"
+        )
+
+        m2.metric(
+            "No completado",
+            f"{pendientes:,}"
+        )
+
+        m3.metric(
+            "Completaron",
+            f"{completaron:,}"
+        )
+
+        m4.metric(
+            "Completitud",
+            f"{porcentaje_completitud:.1f}%"
+        )
+
+        # ----------------------------------------------------
+        # GRÁFICO DE ESTADO
+        # ----------------------------------------------------
+
+        resumen_estado = pd.DataFrame({
+            "Estado": [
+                "Completaron",
+                "No completado"
+            ],
+            "Usuarios": [
+                completaron,
+                pendientes
+            ]
+        })
+
+        if usuarios_registrados > 0:
+
+            fig_estado = px.bar(
+                resumen_estado,
+                x="Usuarios",
+                y="Estado",
+                orientation="h",
+                text="Usuarios",
+                color_discrete_sequence=["#A2B9EE"],
+                title="Estado de las evaluaciones"
             )
 
+            fig_estado.update_traces(
+                textposition="outside",
+                cliponaxis=False
+            )
 
-            if quizzes_filtrados.empty:
+            fig_estado.update_layout(
+                height=280,
+                showlegend=False,
+                xaxis_title="Número de usuarios",
+                yaxis_title=None,
+                plot_bgcolor="white",
+                paper_bgcolor="white",
+                margin=dict(l=10, r=35, t=50, b=10)
+            )
+
+            st.plotly_chart(
+                fig_estado,
+                use_container_width=True,
+                key="grafico_estado_ikigai"
+            )
+
+        # ====================================================
+        # PREPARAR LOS PERFILES FILTRADOS
+        # ====================================================
+
+        st.markdown("---")
+        st.markdown("### Información general de perfiles Ikigai")
+
+        if (
+            df_ikigairesults.empty
+            or "user" not in df_ikigairesults.columns
+        ):
+
+            st.info(
+                "No se encontraron resultados en ikigairesults."
+            )
+
+        else:
+
+            resultados = df_ikigairesults.copy()
+
+            resultados["user"] = (
+                resultados["user"]
+                .apply(normalizar_id_ikigai)
+            )
+
+            resultados = resultados[
+                resultados["user"].isin(
+                    ikigai_filtrado["user"]
+                )
+            ].copy()
+
+            campos_perfil = {
+                "Dirección profesional":
+                    "profile.career_direction",
+
+                "Nivel de claridad":
+                    "profile.clarity_level",
+
+                "Motivación":
+                    "profile.motivation",
+
+                "Fortalezas":
+                    "profile.strengths",
+
+                "Áreas laborales sugeridas":
+                    "profile.suggested_work_areas",
+
+                "Perfil profesional":
+                    "profile.professional_profile"
+            }
+
+            if resultados.empty:
 
                 st.info(
-                    "No hay quizzes para los filtros seleccionados."
+                    "No hay perfiles para el año y la carrera "
+                    "seleccionados."
                 )
 
             else:
 
-                # ============================================
-                # RESUMEN POR QUIZ
-                # ============================================
+                # =================================================
+                # TOP 10 HABILIDADES IDENTIFICADAS
+                # =================================================
 
-                resumen_quizzes = (
-                    quizzes_filtrados
-                    .groupby(
-                        [
-                            "quiz_id",
-                            "quiz_key",
-                            "quiz_nombre"
-                        ],
-                        dropna=False
-                    )
-                    .agg(
-                        Iniciaron=(
-                            "_id_user",
-                            "nunique"
-                        ),
-                        Completaron=(
-                            "_id_user",
-                            lambda x: (
-                                quizzes_filtrados
-                                .loc[
-                                    x.index,
-                                    "estado"
-                                ]
-                                .eq("Completado")
-                                .sum()
+                st.markdown("#### Habilidades identificadas")
+
+                columna_fortalezas = campos_perfil["Fortalezas"]
+
+                if columna_fortalezas in resultados.columns:
+
+                    habilidades_unificadas = {}
+
+                    for valor in resultados[
+                        columna_fortalezas
+                    ].dropna():
+
+                        for habilidad in separar_respuestas(valor):
+
+                            clave = normalizar_habilidad(habilidad)
+
+                            if not clave:
+                                continue
+
+                            if clave not in habilidades_unificadas:
+
+                                habilidades_unificadas[clave] = {
+                                    "Habilidad": habilidad.strip(),
+                                    "Menciones": 0
+                                }
+
+                            habilidades_unificadas[clave][
+                                "Menciones"
+                            ] += 1
+
+                    if habilidades_unificadas:
+
+                        resumen_habilidades = pd.DataFrame(
+                            list(habilidades_unificadas.values())
+                        )
+
+                        resumen_habilidades = (
+                            resumen_habilidades
+                            .sort_values(
+                                ["Menciones", "Habilidad"],
+                                ascending=[False, True]
+                            )
+                            .head(10)
+                            .sort_values("Menciones")
+                        )
+
+                        fig_habilidades = px.bar(
+                            resumen_habilidades,
+                            x="Menciones",
+                            y="Habilidad",
+                            orientation="h",
+                            text="Menciones",
+                            title="Top 10 habilidades más mencionadas",
+                            color_discrete_sequence=["#addfcd"]
+                        )
+
+                        fig_habilidades.update_traces(
+                            textposition="outside",
+                            cliponaxis=False
+                        )
+
+                        fig_habilidades.update_layout(
+                            height=400,
+                            showlegend=False,
+                            xaxis_title="Número de menciones",
+                            yaxis_title=None,
+                            plot_bgcolor="white",
+                            paper_bgcolor="white",
+                            margin=dict(
+                                l=10,
+                                r=35,
+                                t=50,
+                                b=10
                             )
                         )
+
+                        st.plotly_chart(
+                            fig_habilidades,
+                            use_container_width=True,
+                            key="grafico_habilidades_ikigai"
+                        )
+
+                    else:
+
+                        st.info(
+                            "No hay fortalezas registradas "
+                            "para los filtros seleccionados."
+                        )
+
+                else:
+
+                    st.info(
+                        "No se encontró el campo de fortalezas "
+                        "en los resultados de Ikigai."
                     )
-                    .reset_index()
-                )
-
-
-                # ============================================
-                # PORCENTAJE
-                # ============================================
-
-                resumen_quizzes["Completación"] = (
-                    resumen_quizzes["Completaron"]
-                    .div(
-                        resumen_quizzes["Iniciaron"]
-                    )
-                    .fillna(0)
-                    .mul(100)
-                    .round(1)
-                )
-
-
-                # ============================================
-                # ORDENAR
-                # ============================================
-
-                resumen_quizzes = (
-                    resumen_quizzes
-                    .sort_values(
-                        "Completación",
-                        ascending=True
-                    )
-                )
-
-
-                # ============================================
-                # GRÁFICO
-                # ============================================
-
-                fig_quizzes = px.bar(
-                    resumen_quizzes,
-                    x="Completación",
-                    y="quiz_nombre",
-                    orientation="h",
-                    text="Completación"
-                )
-
-
-                fig_quizzes.update_traces(
-                    marker_color=COLORS["azul_grafico_quizzes"],
-                    marker_line_width=0,
-                    texttemplate="%{text:.1f}%",
-                    textposition="outside",
-                    hovertemplate=(
-                        "<b>%{y}</b><br>"
-                        "Completación: %{x:.1f}%"
-                        "<extra></extra>"
-                    )
-                )
-
-
-                fig_quizzes.update_layout(
-                    height=max(
-                        300,
-                        len(resumen_quizzes) * 60
-                    ),
-                    margin=dict(
-                        l=10,
-                        r=55,
-                        t=10,
-                        b=10
-                    ),
-                    plot_bgcolor="white",
-                    paper_bgcolor="white",
-                    showlegend=False,
-
-                    xaxis=dict(
-                        range=[
-                            0,
-                            max(
-                                100,
-                                resumen_quizzes[
-                                    "Completación"
-                                ].max() + 10
-                            )
-                        ],
-                        ticksuffix="%",
-                        showgrid=False,
-                        zeroline=False,
-                        showline=False,
-                        title=None
-                    ),
-
-                    yaxis=dict(
-                        title=None,
-                        showgrid=False,
-                        zeroline=False,
-                        showline=False
-                    )
-                )
-
-
-                st.plotly_chart(
-                    fig_quizzes,
-                    width="stretch",
-                    key="grafico_completacion_quizzes"
-                )
-
-
-        # ====================================================
-        # DERECHA
-        # DETALLE DEL QUIZ
-        # ====================================================
-
-        with derecha:
-
-            st.markdown(
-                """
-                <p style="
-                    font-size:16px;
-                    font-weight:600;
-                    margin-bottom:12px;
-                ">
-                    Detalle del quiz
-                </p>
-                """,
-                unsafe_allow_html=True
-            )
-
-
-            # =================================================
-            # LISTA DE QUIZZES
-            # =================================================
-
-            opciones_quiz = (
-                quizzes_filtrados[
-                    [
-                        "quiz_id",
-                        "quiz_nombre"
-                    ]
-                ]
-                .drop_duplicates()
-                .dropna(subset=["quiz_nombre"])
-                .sort_values("quiz_nombre")
-            )
-
-
-            if opciones_quiz.empty:
-
-                st.info(
-                    "No hay quizzes para los filtros seleccionados."
-                )
-
-            else:
-
-                opciones_nombres = (
-                    opciones_quiz[
-                        "quiz_nombre"
-                    ]
-                    .astype(str)
-                    .tolist()
-                )
-
-
-                # =============================================
-                # TODOS
-                # =============================================
-
-                opciones_nombres = (
-                    ["Todos"]
-                    + opciones_nombres
-                )
-
-
-                quiz_seleccionado = st.selectbox(
-                    "Seleccionar quiz",
-                    options=opciones_nombres,
-                    key="quiz_seleccionado"
-                )
-
 
                 # =================================================
-                # FILTRAR QUIZ SELECCIONADO
+                # DESPLEGABLE DE CARACTERÍSTICAS DEL PERFIL
                 # =================================================
 
-                if quiz_seleccionado == "Todos":
+                st.markdown("#### Características de los perfiles")
 
-                    detalle_quiz = (
-                        quizzes_filtrados
-                        .copy()
+                campo_seleccionado = st.selectbox(
+                    "Selecciona la característica que deseas analizar:",
+                    options=list(campos_perfil.keys()),
+                    key="campo_consulta_ikigai"
+                )
+
+                columna = campos_perfil[campo_seleccionado]
+
+                if columna not in resultados.columns:
+
+                    st.info(
+                        f"No está disponible el campo "
+                        f"'{campo_seleccionado}'."
                     )
 
                 else:
 
-                    detalle_quiz = (
-                        quizzes_filtrados[
-                            quizzes_filtrados[
-                                "quiz_nombre"
-                            ]
-                            == quiz_seleccionado
-                        ]
-                        .copy()
-                    )
+                    valores = []
 
+                    for valor in resultados[columna].dropna():
 
-                # =================================================
-                # ELIMINAR DUPLICADOS
-                # =================================================
+                        valores.extend(separar_respuestas(valor))
 
-                detalle_quiz = (
-                    detalle_quiz
-                    .drop_duplicates(
-                        subset=[
-                            "_id_user",
-                            "quiz_id"
-                        ],
-                        keep="last"
-                    )
-                )
+                    # Agrupar menciones repetidas ignorando
+                    # mayúsculas, minúsculas y tildes
+                    conteo = {}
 
+                    for valor in valores:
 
-                # =================================================
-                # CONTADORES
-                # =================================================
+                        clave = normalizar_habilidad(valor)
 
-                iniciaron = (
-                    detalle_quiz[
-                        "_id_user"
-                    ]
-                    .nunique()
-                )
+                        if not clave:
+                            continue
 
+                        if clave not in conteo:
 
-                en_proceso = (
-                    detalle_quiz[
-                        detalle_quiz["estado"]
-                        == "En proceso"
-                    ]["_id_user"]
-                    .nunique()
-                )
+                            conteo[clave] = {
+                                "Respuesta": valor.strip(),
+                                "Menciones": 0
+                            }
 
+                        conteo[clave]["Menciones"] += 1
 
-                completaron = (
-                    detalle_quiz[
-                        detalle_quiz["estado"]
-                        == "Completado"
-                    ]["_id_user"]
-                    .nunique()
-                )
+                    if not conteo:
 
+                        st.info(
+                            f"No hay información registrada "
+                            f"en '{campo_seleccionado}'."
+                        )
 
-                # =================================================
-                # COMPLETACIÓN
-                # =================================================
+                    else:
 
-                completacion = porcentaje(
-                    completaron,
-                    iniciaron
-                )
+                        resumen_campo = pd.DataFrame(
+                            list(conteo.values())
+                        )
 
+                        # El nivel de claridad se muestra
+                        # como distribución numérica si corresponde
+                        if (
+                            campo_seleccionado == "Nivel de claridad"
+                        ):
 
-                # =================================================
-                # MÉTRICAS PRINCIPALES
-                # =================================================
+                            resumen_campo["Valor numérico"] = (
+                                pd.to_numeric(
+                                    resumen_campo["Respuesta"],
+                                    errors="coerce"
+                                )
+                            )
 
-                m1, m2, m3 = st.columns(3)
+                            resumen_numerico = resumen_campo.dropna(
+                                subset=["Valor numérico"]
+                            )
 
+                            if not resumen_numerico.empty:
 
-                with m1:
+                                resumen_numerico = (
+                                    resumen_numerico
+                                    .groupby(
+                                        "Valor numérico",
+                                        as_index=False
+                                    )["Menciones"]
+                                    .sum()
+                                    .sort_values("Valor numérico")
+                                )
 
-                    st.metric(
-                        "🚀 Iniciaron",
-                        f"{iniciaron:,}"
-                    )
+                                fig_campo = px.bar(
+                                    resumen_numerico,
+                                    x="Valor numérico",
+                                    y="Menciones",
+                                    text="Menciones",
+                                    title="Distribución del nivel de claridad",
+                                    color_discrete_sequence=["#7abca4"]
+                                )
 
+                                fig_campo.update_layout(
+                                    xaxis_title="Nivel de claridad",
+                                    yaxis_title="Número de menciones",
+                                    plot_bgcolor="white",
+                                    paper_bgcolor="white"
+                                )
 
-                with m2:
+                                st.plotly_chart(
+                                    fig_campo,
+                                    use_container_width=True,
+                                    key="grafico_claridad_ikigai"
+                                )
 
-                    st.metric(
-                        "⏳ En proceso",
-                        f"{en_proceso:,}"
-                    )
+                            else:
 
+                                st.info(
+                                    "Los niveles de claridad no "
+                                    "contienen valores numéricos válidos."
+                                )
 
-                with m3:
+                        else:
 
-                    st.metric(
-                        "✅ Completaron",
-                        f"{completaron:,}"
-                    )
+                            # Mostrar las 10 respuestas más frecuentes
+                            resumen_campo = (
+                                resumen_campo
+                                .sort_values(
+                                    ["Menciones", "Respuesta"],
+                                    ascending=[False, True]
+                                )
+                                .head(10)
+                                .sort_values("Menciones")
+                            )
 
+                            fig_campo = px.bar(
+                                resumen_campo,
+                                x="Menciones",
+                                y="Respuesta",
+                                orientation="h",
+                                text="Menciones",
+                                title=f"Top 10: {campo_seleccionado}",
+                                color_discrete_sequence=["#7abca4"]
+                            )
 
-                # =================================================
-                # COMPLETACIÓN
-                # =================================================
+                            fig_campo.update_traces(
+                                textposition="outside",
+                                cliponaxis=False
+                            )
 
-                st.metric(
-                    "📊 Completación",
-                    f"{completacion:.1f}%"
-                )
+                            fig_campo.update_layout(
+                                height=400,
+                                showlegend=False,
+                                xaxis_title="Número de menciones",
+                                yaxis_title=None,
+                                plot_bgcolor="white",
+                                paper_bgcolor="white",
+                                margin=dict(
+                                    l=10,
+                                    r=35,
+                                    t=50,
+                                    b=10
+                                )
+                            )
 
-
-                
+                            st.plotly_chart(
+                                fig_campo,
+                                use_container_width=True,
+                                key="grafico_campo_ikigai"
+                            )
 
 # ============================================================
-# EVOLUCIÓN
+# EVOLUCIÓN GENERAL DE REGISTROS DE POSTULANTES
 # ============================================================
 
-st.markdown('<div class="section-title">Evolución de registros</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="section-title">Evolución de registros</div>',
+    unsafe_allow_html=True
+)
 
-if "createdAt_user" in df.columns and df["createdAt_user"].notna().any():
+if (
+    "createdAt_user" in df.columns
+    and df["createdAt_user"].notna().any()
+):
 
-    registros = (
-        df.dropna(subset=["createdAt_user"])
-        .groupby([
-            df["createdAt_user"].dt.year.rename("Año"),
-            df["createdAt_user"].dt.month.rename("Mes_num")
-        ])
+    # Preparar fechas válidas
+    registros = df.dropna(
+        subset=["createdAt_user"]
+    ).copy()
+
+    # Agrupar postulantes por año y mes
+    registros["Año"] = (
+        registros["createdAt_user"].dt.year
+    )
+
+    registros["Mes_num"] = (
+        registros["createdAt_user"].dt.month
+    )
+
+    evolucion = (
+        registros
+        .groupby(["Año", "Mes_num"])
         .size()
         .reset_index(name="Postulantes")
     )
 
-    registros["Mes"] = registros["Mes_num"].map(MESES)
+    # Nombres de los meses
+    evolucion["Mes"] = evolucion["Mes_num"].map(MESES)
 
-    fig = px.bar(
-        registros,
-        x="Mes",
-        y="Postulantes",
-        color_discrete_sequence=[COLORS["azul_evolucion"]]
+    # Mostrar año y mes para distinguir periodos de diferentes años
+    evolucion["Periodo"] = (
+        evolucion["Año"].astype(str)
+        + " - "
+        + evolucion["Mes"].astype(str)
     )
 
-    fig.update_layout(
+    evolucion = evolucion.sort_values(
+        ["Año", "Mes_num"]
+    )
+
+    # Gráfico de evolución general
+    fig_evolucion = px.bar(
+        evolucion,
+        x="Periodo",
+        y="Postulantes",
+        text="Postulantes",
+        color_discrete_sequence=[
+            COLORS["azul_evolucion"]
+        ]
+    )
+
+    fig_evolucion.update_traces(
+        textposition="outside",
+        cliponaxis=False,
+        hovertemplate=(
+            "<b>%{x}</b><br>"
+            "Postulantes: %{y}"
+            "<extra></extra>"
+        )
+    )
+
+    fig_evolucion.update_layout(
         height=390,
         plot_bgcolor="white",
         paper_bgcolor="white",
-        showlegend=False
+        showlegend=False,
+        xaxis=dict(
+            title="Periodo",
+            showgrid=False,
+            zeroline=False
+        ),
+        yaxis=dict(
+            title="Número de postulantes",
+            showgrid=True,
+            zeroline=False
+        ),
+        margin=dict(
+            l=10,
+            r=20,
+            t=20,
+            b=10
+        )
     )
 
     st.plotly_chart(
-        fig,
-        use_container_width=True
+        fig_evolucion,
+        use_container_width=True,
+        key="grafico_evolucion_postulantes"
     )
 
+else:
+
+    st.info(
+        "No hay fechas válidas para mostrar la evolución "
+        "de los registros de postulantes."
+    )
 
 st.markdown("---")
 st.caption("Dashboard de Postulantes · Laboral.AI")
